@@ -1,9 +1,10 @@
 /** @format */
 
 import React from 'react';
+import BorrowPage from '@/pages/BorrowPage';
 
-function BorrowPage() {
-	return <div>BorrowPage</div>;
+function BorrowPage_() {
+	return <BorrowPage />;
 }
 
-export default BorrowPage;
+export default BorrowPage_;

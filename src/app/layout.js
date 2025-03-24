@@ -2,6 +2,8 @@
 
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { ReactQueryProvider } from '@/lib/ReactQueryProvider';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProvider } from '@/context/AppContext';
 import Sidebar from '@/components/sidebar/Sidebar';
 
@@ -24,12 +26,15 @@ export default function RootLayout({ children }) {
 	return (
 		<html lang='en'>
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-				<AppProvider>
-					<div className='flex'>
-						<Sidebar />
-						{children}
-					</div>
-				</AppProvider>
+				<ReactQueryProvider>
+					<AppProvider>
+						<div className='flex'>
+							<Sidebar />
+							{children}
+						</div>
+						<ReactQueryDevtools initialIsOpen={false} />
+					</AppProvider>
+				</ReactQueryProvider>
 			</body>
 		</html>
 	);
