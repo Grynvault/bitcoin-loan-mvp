@@ -6,10 +6,14 @@ import * as ecc from 'tiny-secp256k1';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
+import crypto from 'crypto';
+import { initiateLoan } from '@/lib/db/loan';
 
 export async function POST(request) {
 	const body = await request.json();
-	console.log('Received pubKey:', body.pubkey);
+	console.log('body ->', body);
+
+	const { btc_collateral, loan_amount, loan_to_value, btc_price, borrower_pub_key, borrower_segwit_address, loan_duration } = body;
 
 	const TESTNET = bitcoin.networks.testnet; // Testnet
 	const ECPair = ECPairFactory(ecc);
@@ -37,7 +41,7 @@ export async function POST(request) {
 	}
 
 	//Init borrower account
-	const borrowerPubkey = body.pubkey;
+	const borrowerPubkey = borrower_pub_key;
 	const borrowerBufferedPrivateKey = Buffer.from(borrowerPubkey.toString('hex'), 'hex');
 	const borrower = ECPair.fromPublicKey(borrowerBufferedPrivateKey);
 
@@ -45,16 +49,18 @@ export async function POST(request) {
 	const grynvaultBufferedPrivateKey = Buffer.from(grynvaultPrivateKey.toString('hex'), 'hex');
 	const grynvault = ECPair.fromPrivateKey(grynvaultBufferedPrivateKey);
 
+	//For exisiting timestamp
+	// const unixTimestamp = 1742551400;
+	// const lockTime = bip65.encode({ utc: unixTimestamp });
+
 	function utcNow() {
 		return Math.floor(Date.now() / 1000);
 	}
+	const lockTime = bip65.encode({ utc: utcNow() + 3600 }); //1 hour from now
+	console.log('lockTime ->', lockTime);
 
-	const unixTimestamp = 1742551400;
-	//Locktime
-	const lockTime = bip65.encode({ utc: unixTimestamp });
-
-	//Hash
-	const firstPreimage = Buffer.from('secret_for_temporary_htlc');
+	// Generate a random 32-byte buffer (preimage)
+	const firstPreimage = crypto.randomBytes(32);
 	const firstHash = bitcoin.crypto.sha256(firstPreimage);
 
 	////Creating the contract
@@ -67,10 +73,31 @@ export async function POST(request) {
 		network: TESTNET,
 	});
 
-	console.log('Init HTCL Redeem address ->', address);
+	const bodyToServer = {
+		btc_collateral: btc_collateral,
+		loan_amount: loan_amount,
+		loan_to_value: loan_to_value,
+		btc_price: btc_price,
+		borrower_pub_key: borrower_pub_key,
+		borrower_segwit_address: borrower_segwit_address,
+		loan_duration: loan_duration,
+		total_loan_withdrawn: 0,
+		init_timelock: lockTime,
+		init_htlc_address: address,
+		init_preimage: firstPreimage,
+		status: 'initialize',
+		collateral_timelock: null,
+		collateral_htlc_address: null,
+	};
 
-	return NextResponse.json({
-		success: true,
-		tempHtclAdress: address,
-	});
+	try {
+		const loan = await initiateLoan(bodyToServer);
+		return NextResponse.json({
+			success: true,
+			loan: loan,
+		});
+	} catch (err) {
+		console.log('err ->', err);
+		return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+	}
 }

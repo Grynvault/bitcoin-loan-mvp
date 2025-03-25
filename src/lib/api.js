@@ -28,7 +28,7 @@ export const useBtcPrice = () => {
 			const data = await res.json();
 			return data.bitcoin.usd;
 		},
-		refetchInterval: 60000, // refresh every 60s
+		refetchInterval: 500000, // refresh every 60s
 	});
 
 	return {
