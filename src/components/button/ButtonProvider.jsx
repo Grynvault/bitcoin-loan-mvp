@@ -9,7 +9,7 @@ function ButtonProvider({ children, loading = false, disabled = false, ...props 
 		<button
 			disabled={disabled}
 			style={loading || disabled ? { opacity: 0.5 } : {}}
-			className={`px-8 py-2 rounded-full bg-blue-600 text-white font-semibold 
+			className={`px-4 py-2 rounded-full bg-blue-600 text-white font-semibold 
         ${
 					disabled
 						? 'cursor-not-allowed'

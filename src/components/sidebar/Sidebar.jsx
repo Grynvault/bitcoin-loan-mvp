@@ -26,9 +26,7 @@ export default function Sidebar(props) {
 
 	const navItems = [
 		{ href: '/', label: 'Dashboard' },
-		{ href: '/borrow', label: 'Borrow' },
 		{ href: '/loan', label: 'Loan' },
-		{ href: '/transaction', label: 'Transaction' },
 	];
 
 	const handleDrawerClose = () => {
@@ -47,7 +45,7 @@ export default function Sidebar(props) {
 	};
 
 	const drawer = (
-		<div className='flex py-8 px-4 flex-col gap-4'>
+		<div className='flex py-12 px-4 flex-col gap-4'>
 			{navItems.map((item) => (
 				<Link
 					key={item.href}

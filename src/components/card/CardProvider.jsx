@@ -8,5 +8,11 @@ export default function CardProvider({ children, ...props }) {
 		maxWidth: props.maxWidth || '420px',
 	};
 
-	return <div style={cardStyle}>{children}</div>;
+	return (
+		<div
+			style={cardStyle}
+			{...props}>
+			{children}
+		</div>
+	);
 }

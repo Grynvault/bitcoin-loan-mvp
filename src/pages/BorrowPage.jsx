@@ -25,13 +25,16 @@ export default function BorrowPage() {
 	const { data: btcBalance, isLoading: btcBalanceIsLoading } = useUserBtcBalance();
 	const { data: btcPrice, isLoading: btcPriceIsLoading } = useBtcPrice();
 	const [activeStep, setActiveStep] = useState(0);
-	//Step 1 states
+	//Step 1 (Initiaze Loan) states
 	const [loanAmount, setLoanAmount] = useState(10);
 	const [days, setDays] = useState(2);
 	const [loadingStep1, setLoadingStep1] = useState(false);
-	//Step 2 states
+	//Step 2 (Deposit Collateral) states
 	const [btcCollateral, setBtcCollateral] = useState(null);
 	const [initHtclAddress, setInitHtclAddress] = useState(null);
+	const [initTimelock, setInitTimelock] = useState(null);
+	const [loanId, setLoanId] = useState(null);
+	const [loadingStep2, setLoadingStep2] = useState(false);
 
 	const handleChangeDays = (event, newValue) => {
 		setDays(newValue);
@@ -72,8 +75,6 @@ export default function BorrowPage() {
 			loan_duration: loanDuration,
 		};
 
-		console.log(bodyToServer);
-
 		setLoadingStep1(true);
 
 		try {
@@ -89,11 +90,48 @@ export default function BorrowPage() {
 			console.log(data);
 			setBtcCollateral(data.loan.btc_collateral);
 			setInitHtclAddress(data.loan.init_htlc_address);
+			setInitTimelock(data.loan.init_timelock);
+			setLoanId(data.loan.id);
 			setLoadingStep1(false);
 			handleNext();
 		} catch (e) {
-			console.log('Error ->', e);
+			console.log('Error initiating loan ->', e);
 			setLoadingStep1(false);
+		}
+	};
+
+	//1c8ebcf09e385204d09b71ffbb3472f949c219837a1adffe0708db7556b8c81d
+	const depositCollateral = async () => {
+		let transactionId;
+
+		// try {
+		// 	let txid = await window.unisat.sendBitcoin(initHtclAddress, btcCollateral);
+		// 	console.log('transactionId ->', txid);
+		// 	transactionId = txid;
+		// } catch (e) {
+		// 	console.log('Error sending Bitcoin:', e);
+		// }
+
+		setLoadingStep2(true);
+
+		try {
+			const res = await fetch('/api/deposit-collateral', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					loan_id: loanId,
+					tx_id: '45908c56a2f71f9b19c4758838fa06ad148ed142a2c0bdf3c940f92ded30acd5',
+				}),
+			});
+
+			const data = await res.json();
+			console.log(data);
+			setLoadingStep2(false);
+		} catch (e) {
+			console.log('Error deposit collateral:', e);
+			setLoadingStep2(false);
 		}
 	};
 
@@ -196,7 +234,16 @@ export default function BorrowPage() {
 							<div className='flex flex-row justify-center items-center gap-2'>
 								<div className='text-4xl font-semibold'>{(btcCollateral / 1e8).toFixed(8)} BTC</div>
 							</div>
-							<div className='text-center text-sm'>to {initHtclAddress} (P2SH)</div>
+							<div className='text-center text-sm'>
+								to{' '}
+								<a
+									target='_blank'
+									className='font-bold underline text-blue-600'
+									href={`https://mempool.space/testnet/address/${initHtclAddress}`}>
+									{shortenAddress(initHtclAddress)}
+								</a>{' '}
+								(P2SH)
+							</div>
 							<Accordion>
 								<AccordionSummary
 									expandIcon={<ChevronDown />}
@@ -226,7 +273,7 @@ OP_ENDIF`}
 								<div>
 									<div className='flex flex-row justify-between items-center'>
 										<div>Timelock</div>
-										<div>Mon Mar 24 11:54 PM</div>
+										<div>{formatUnix(initTimelock)}</div>
 									</div>
 									<div className='text-xs'>
 										If Grynvault does not deposit the loan within timelock,
@@ -235,7 +282,11 @@ OP_ENDIF`}
 								</div>
 							</div>
 
-							<ButtonProvider onClick={handleNext}>Deposit Collateral </ButtonProvider>
+							<ButtonProvider
+								loading={loadingStep2}
+								onClick={depositCollateral}>
+								Deposit Collateral{' '}
+							</ButtonProvider>
 						</div>
 					</CardProvider>
 				)}
@@ -285,7 +336,7 @@ OP_ENDIF`}
 								</div>
 								<div className='flex flex-row gap-8 justify-between items-center'>
 									<div>Loan due date</div>
-									<div>Tues, Mar 25 12:30 PM</div>
+									<div></div>
 								</div>
 								<div className='flex flex-row justify-between items-center'>
 									<div>Fees in BTC</div>
@@ -333,3 +384,21 @@ const getPublicKey = async () => {
 		console.log(e);
 	}
 };
+
+function formatUnix(unixTimestamp) {
+	const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	return new Date(unixTimestamp * 1000).toLocaleString('en-US', {
+		timeZone: userTimeZone,
+		year: 'numeric',
+		month: 'short',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
+
+function shortenAddress(addr, start = 7, end = 5) {
+	if (!addr || addr.length <= start + end) return addr;
+	return `${addr.slice(0, start)}....${addr.slice(-end)}`;
+}

@@ -1,9 +1,10 @@
 /** @format */
 
 import React from 'react';
+import LoanPage from '@/pages/LoanPage';
 
-function LoanPage() {
-	return <div>LoanPage</div>;
+function LoanPage_() {
+	return <LoanPage />;
 }
 
-export default LoanPage;
+export default LoanPage_;

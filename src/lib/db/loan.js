@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabaseServer';
  * @param {string} data.status - Status = initialize | deposit | ready | end
  * @param {string} data.init_htlc_address - Initial HTLC address to hold collateral temporarily
  * @param {string} data.collateral_htcl_address - Collateral HTLC address
+ * @param {string} data.init_redeem_script_hex - Init Redeem Script in HEX
  * @returns {Promise<Object>} The inserted loan record.
  */
 export async function initiateLoan({
@@ -37,6 +38,7 @@ export async function initiateLoan({
 	status,
 	init_htlc_address,
 	collateral_htlc_address,
+	init_redeem_script_hex,
 }) {
 	const { data, error } = await supabase
 		.from('loans')
@@ -56,10 +58,21 @@ export async function initiateLoan({
 				collateral_htlc_address: collateral_htlc_address,
 				total_loan_withdrawn: total_loan_withdrawn,
 				status: status,
+				init_redeem_script_hex: init_redeem_script_hex,
 			},
 		])
 		.select()
 		.single();
+
+	if (error) {
+		throw new Error(error.message);
+	}
+
+	return data;
+}
+
+export async function getLoanById(loanId) {
+	const { data, error } = await supabase.from('loans').select('*').eq('id', loanId).single();
 
 	if (error) {
 		throw new Error(error.message);

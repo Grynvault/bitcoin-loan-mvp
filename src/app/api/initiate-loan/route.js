@@ -56,12 +56,12 @@ export async function POST(request) {
 	function utcNow() {
 		return Math.floor(Date.now() / 1000);
 	}
-	const lockTime = bip65.encode({ utc: utcNow() + 3600 }); //1 hour from now
-	console.log('lockTime ->', lockTime);
+	const lockTime = bip65.encode({ utc: utcNow() + 600 }); //10 minute from now
 
 	// Generate a random 32-byte buffer (preimage)
-	const firstPreimage = crypto.randomBytes(32);
-	const firstHash = bitcoin.crypto.sha256(firstPreimage);
+	const firstPreimage = 'secret_for_temporary_htlc';
+	const bufferedFirstPreimage = Buffer.from(firstPreimage);
+	const firstHash = bitcoin.crypto.sha256(bufferedFirstPreimage);
 
 	////Creating the contract
 	const initHtclRedeemScript = tempHashTimelockContract(borrower, grynvault, lockTime, firstHash);
@@ -72,6 +72,8 @@ export async function POST(request) {
 		},
 		network: TESTNET,
 	});
+
+	console.log('initHtclRedeemScript ->', initHtclRedeemScript);
 
 	const bodyToServer = {
 		btc_collateral: btc_collateral,
@@ -88,6 +90,7 @@ export async function POST(request) {
 		status: 'initialize',
 		collateral_timelock: null,
 		collateral_htlc_address: null,
+		init_redeem_script_hex: initHtclRedeemScript.toString('hex'),
 	};
 
 	try {
