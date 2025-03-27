@@ -1,6 +1,6 @@
 /** @format */
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 //Context import
 import { useApp } from '@/context/AppContext';
@@ -8,12 +8,35 @@ import { useApp } from '@/context/AppContext';
 import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon, UnlockedIcon } from '@/components/icon/icons';
+import ConnectWallet from '@/components/template/ConnectWallet';
 //Lib
 import { useUserBtcBalance } from '@/lib/api';
 import { shortenAddress } from '@/lib/util';
 
 function LoanPage() {
 	const loanPaid = true;
+	const { user, setUser } = useApp();
+
+	const [loading, setLoading] = useState(false);
+
+	const connectWallet = async () => {
+		if (!window.unisat) {
+			alert('Please install the Unisat Wallet extension.');
+			return;
+		}
+
+		setLoading(true);
+
+		try {
+			let accounts = await window.unisat.requestAccounts();
+			console.log(accounts);
+			setUser(accounts[0]);
+			setLoading(false);
+		} catch (e) {
+			console.log('Error connecting wallet =>', e);
+			setLoading(false);
+		}
+	};
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
@@ -21,7 +44,14 @@ function LoanPage() {
 				<h1 className='text-4xl font-bold'>Loan</h1>
 			</div>
 			<div className='flex flex-row justify-center items-center'>
-				{loanPaid ? (
+				{!user ? (
+					<CardProvider className='w-full p-8'>
+						<ConnectWallet
+							handleConnectWallet={connectWallet}
+							isLoading={loading}
+						/>
+					</CardProvider>
+				) : loanPaid ? (
 					<CardProvider className='w-full'>
 						<div className='w-full p-4 flex flex-col gap-4'>
 							<div className='flex flex-col justify-center items-center gap-1'>

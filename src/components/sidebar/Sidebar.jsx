@@ -57,8 +57,6 @@ export default function Sidebar(props) {
 		</div>
 	);
 
-	if (!user) return null;
-
 	return (
 		<>
 			<AppBar

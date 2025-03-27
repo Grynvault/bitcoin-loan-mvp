@@ -3,24 +3,27 @@
 import React from 'react';
 import Image from 'next/image';
 import { BitcoinWalletIcon } from '../icon/icons';
+import ButtonProvider from '../button/ButtonProvider';
 
-function ConnectWallet({ handleConnectWallet }) {
+function ConnectWallet({ handleConnectWallet, isLoading }) {
 	return (
-		<div className='flex flex-col justify-center items-center gap-12'>
-			<div className='w-[100px] opacity-70'>
+		<div className='flex flex-col h-full justify-center items-center gap-6'>
+			<div className='w-[80px] opacity-70'>
 				<BitcoinWalletIcon />
 			</div>
-			<button
-				onClick={handleConnectWallet}
-				className='py-2 px-8 text-lg border-2 flex items-center border-gray-700 rounded-lg font-semibold'>
-				<Image
-					src='/images/unisatlogo.jpeg'
-					alt='Logo'
-					width={32}
-					height={32}
-				/>
-				Connect Wallet
-			</button>
+			<ButtonProvider
+				loading={isLoading}
+				onClick={handleConnectWallet}>
+				<div className='flex items-center font-semibold'>
+					<Image
+						src='/images/unisatlogo.jpeg'
+						alt='Logo'
+						width={32}
+						height={32}
+					/>
+					Connect Wallet
+				</div>
+			</ButtonProvider>
 		</div>
 	);
 }

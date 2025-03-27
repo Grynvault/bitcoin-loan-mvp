@@ -80,3 +80,24 @@ export async function getLoanById(loanId) {
 
 	return data;
 }
+
+/**
+ * Updates a loan by ID with the provided fields.
+ *
+ * @param {number} id - The ID of the loan to update
+ * @param {Object} updates - Fields to update (e.g., { loan_amount, loan_duration })
+ * @returns {Promise<Object>} The updated loan record
+ */
+export async function updateLoan(id, updates) {
+	if (!id || isNaN(id)) {
+		throw new Error('Invalid loan ID');
+	}
+
+	const { data, error } = await supabase.from('loans').update(updates).eq('id', id).select().single();
+
+	if (error) {
+		throw new Error(`Failed to update loan: ${error.message}`);
+	}
+
+	return data;
+}

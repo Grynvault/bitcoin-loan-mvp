@@ -1,10 +1,12 @@
 /** @format */
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 //Context import
 import { useApp } from '@/context/AppContext';
 //Components import
 import ButtonProvider from '@/components/button/ButtonProvider';
+import { BitcoinWalletIcon } from '@/components/icon/icons';
 
 function ConnectWallet() {
 	const { setUser } = useApp();
@@ -31,12 +33,24 @@ function ConnectWallet() {
 
 	return (
 		<div className='p-8 w-full h-full justify-center items-center h-screen text-center flex flex-col gap-8'>
-			<h1 className='text-4xl font-semibold'>Welcome to Grynvault</h1>
-			<ButtonProvider
-				loading={loading}
-				onClick={connectWallet}>
-				Connect Unisat Wallet
-			</ButtonProvider>
+			<div className='flex flex-col justify-center items-center gap-12'>
+				<div className='w-[100px] opacity-70'>
+					<BitcoinWalletIcon />
+				</div>
+				<ButtonProvider
+					loading={loading}
+					onClick={connectWallet}>
+					<div className='flex items-center font-semibold'>
+						<Image
+							src='/images/unisatlogo.jpeg'
+							alt='Logo'
+							width={32}
+							height={32}
+						/>
+						Connect Wallet
+					</div>
+				</ButtonProvider>
+			</div>
 		</div>
 	);
 }

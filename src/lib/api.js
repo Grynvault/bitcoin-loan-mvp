@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useApp } from '@/context/AppContext';
 
 export const useUserBtcBalance = () => {
+	const { user } = useApp();
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['btcBalance'],
 		queryFn: async () => {
@@ -11,6 +12,7 @@ export const useUserBtcBalance = () => {
 			return res.confirmed;
 		},
 		refetchInterval: 60000, // refresh every 60s
+		enabled: !!user,
 	});
 
 	return {
@@ -21,6 +23,8 @@ export const useUserBtcBalance = () => {
 };
 
 export const useBtcPrice = () => {
+	const { user } = useApp();
+
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['btcPrice'],
 		queryFn: async () => {

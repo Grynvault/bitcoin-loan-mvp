@@ -1,7 +1,9 @@
 /** @format */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+//MUI Import
+import CircularProgress from '@mui/material/CircularProgress';
 //Context import
 import { useApp } from '@/context/AppContext';
 //Components import
@@ -10,67 +12,89 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
-import { useUserBtcBalance } from '@/lib/api';
+import { useUserBtcBalance, useBtcPrice } from '@/lib/api';
 import { shortenAddress } from '@/lib/util';
 
 export default function Dashboard() {
-	const router = useRouter();
 	const { user } = useApp();
-	const { data: btcBalance, isLoading, isError } = useUserBtcBalance();
+	const { data: btcBalance, isLoading: isBtcBalanceLoading } = useUserBtcBalance();
+	const { data: btcPrice, isLoading: isBtcPriceLoading } = useBtcPrice();
 
 	return (
-		<div className='w-full h-screen flex justify-center items-center'>
-			<ConnectWallet />
+		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
+			<div className='flex flex-row items-center justify-between w-full gap-2'>
+				<h1 className='text-4xl font-bold'>Dashboard</h1>
+				{user && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(user)}</div>}
+			</div>
+			<div className='flex md:flex-row flex-col gap-4 w-full'>
+				<LoanCard user={user} />
+				<div className='flex flex-col gap-4 w-full'>
+					<FundCard />
+					<BtcFund
+						btcBalance={btcBalance}
+						btcPrice={btcPrice}
+						isLoading={isBtcBalanceLoading || isBtcPriceLoading}
+					/>
+				</div>
+			</div>
 		</div>
 	);
-
-	// return (
-	// 	<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
-	// 		<div className='flex flex-row items-center justify-between w-full gap-2'>
-	// 			<h1 className='text-4xl font-bold'>Dashboard</h1>
-	// 			<div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(user)}</div>
-	// 		</div>
-	// 		<div className='flex md:flex-row flex-col gap-4 w-full'>
-	// 			<LoanCard />
-	// 			<div className='flex flex-col gap-4 w-full'>
-	// 				<FundCard />
-	// 				<BtcFund />
-	// 			</div>
-	// 			{/* <CardProvider>
-	// 				<div className='flex flex-col gap-2 p-4'>
-	// 					<div>USD Balance:</div>
-	// 					<h2 className='font-bold text-xl'>$ 0.00</h2>
-	// 				</div>
-	// 			</CardProvider>
-	// 			<CardProvider>
-	// 				<div className='flex flex-col gap-2 p-4'>
-	// 					<div>BTC Balance:</div>
-	// 					<h2 className='font-bold text-xl'>{isLoading ? 'Loading...' : (btcBalance / 1e8).toFixed(6)} BTC</h2>
-	// 				</div>
-	// 			</CardProvider> */}
-	// 		</div>
-	// 	</div>
-	// );
 }
 
-const LoanCard = ({ loanDetails }) => {
+const LoanCard = ({ user }) => {
+	const { setUser } = useApp();
+	const [loading, setLoading] = useState(false);
+
+	let route = useRouter();
+
+	const connectWallet = async () => {
+		if (!window.unisat) {
+			alert('Please install the Unisat Wallet extension.');
+			return;
+		}
+
+		setLoading(true);
+
+		try {
+			let accounts = await window.unisat.requestAccounts();
+			console.log(accounts);
+			setUser(accounts[0]);
+			setLoading(false);
+		} catch (e) {
+			console.log('Error connecting wallet =>', e);
+			setLoading(false);
+		}
+	};
+
 	const noLoan = true;
+
+	if (!user)
+		return (
+			<CardProvider
+				maxwidth='100%'
+				className='w-full py-6'>
+				<ConnectWallet
+					handleConnectWallet={connectWallet}
+					isLoading={loading}
+				/>
+			</CardProvider>
+		);
 
 	if (noLoan)
 		return (
 			<CardProvider
-				maxWidth='100%'
+				maxwidth='100%'
 				className='w-full'>
-				<div className='w-full p-4 flex justify-center items-center h-full flex-col gap-4'>
+				<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
 					<div className='font-semibold text-2xl'>You have no loan</div>
-					<ButtonProvider>Initiate Loan</ButtonProvider>
+					<ButtonProvider onClick={() => route.push('/borrow')}>Initiate Loan</ButtonProvider>
 				</div>
 			</CardProvider>
 		);
 	else
 		return (
 			<CardProvider
-				maxWidth='100%'
+				maxwidth='100%'
 				className='w-full'>
 				<div className='w-full p-4 flex flex-col gap-4'>
 					<div className='text-sm'>Amount due in 7 days</div>
@@ -128,12 +152,12 @@ const LoanCard = ({ loanDetails }) => {
 		);
 };
 
-const FundCard = ({ userWallets }) => {
+const FundCard = ({ userFund = 0 }) => {
 	return (
 		<CardProvider>
 			<div className='p-4 flex flex-col gap-2'>
 				<div className='font-medium'>Funds Available</div>
-				<div className='font-semibold text-3xl'>$100.00</div>
+				<div className='font-semibold text-3xl'>{userFund.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
 				<div className='flex flex-row items-center gap-2'>
 					<ButtonProvider>Deposit</ButtonProvider>
 					<ButtonProvider>Withdraw</ButtonProvider>
@@ -143,15 +167,24 @@ const FundCard = ({ userWallets }) => {
 	);
 };
 
-const BtcFund = ({ userBtc }) => {
+const BtcFund = ({ btcBalance = 0, btcPrice = 0, isLoading = true }) => {
 	return (
 		<CardProvider className='flex-1 w-full'>
 			<div className='p-4 h-full flex flex-col gap-2'>
 				<div className='font-medium'>Your wallet</div>
-				<div className='flex flex-1 items-center flex-wrap gap-3'>
-					<div className='font-semibold text-3xl'>0.04 BTC</div>
-					<div className='text-xl font-light'>$2,500</div>
-				</div>
+				{isLoading ? (
+					<div className='flex items-center justify-center bg-white/60 py-4'>
+						<CircularProgress
+							size={30}
+							sx={{ color: 'black' }}
+						/>
+					</div>
+				) : (
+					<div className='flex flex-1 items-center flex-wrap gap-3 py-3'>
+						<div className='font-semibold text-3xl'>{(btcBalance / 1e8).toFixed(4)} BTC</div>
+						<div className='text-xl font-light'>{((btcBalance * btcPrice) / 1e8).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+					</div>
+				)}
 			</div>
 		</CardProvider>
 	);

@@ -1,6 +1,7 @@
 /** @format */
 'use client';
 import React, { useState } from 'react';
+import Image from 'next/image';
 //MUI import
 import Slider from '@mui/material/Slider';
 import Stepper from '@mui/material/Stepper';
@@ -12,14 +13,15 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 //Components import
 import CardProvider from '@/components/card/CardProvider';
 import ButtonProvider from '@/components/button/ButtonProvider';
-import { ChevronDown } from '@/components/icon/icons';
-//API
+import { ChevronDown, CheckIcon } from '@/components/icon/icons';
+//Lib
 import { useUserBtcBalance, useBtcPrice } from '@/lib/api';
+import { shortenAddress, formatUnix } from '@/lib/util';
 
 function valuetext(value) {
 	return `${value}`;
 }
-const steps = ['Initialize Loan', 'Deposit BTC Collateral', 'Loan is Ready'];
+const steps = ['Request Loan', 'Deposit BTC Collateral', 'Initiate Loan', 'Loan is Ready'];
 
 export default function BorrowPage() {
 	const { data: btcBalance, isLoading: btcBalanceIsLoading } = useUserBtcBalance();
@@ -35,6 +37,10 @@ export default function BorrowPage() {
 	const [initTimelock, setInitTimelock] = useState(null);
 	const [loanId, setLoanId] = useState(null);
 	const [loadingStep2, setLoadingStep2] = useState(false);
+	const [depositTxid, setDepositTxid] = useState(null);
+	const [loadingStep3, setLoadingStep3] = useState(false);
+	//Step 3 (Transfer BTC to collateral address)
+	const [loadingStep4, setLoadingStep4] = useState(false);
 
 	const handleChangeDays = (event, newValue) => {
 		setDays(newValue);
@@ -66,7 +72,7 @@ export default function BorrowPage() {
 		const loanDuration = days;
 
 		const bodyToServer = {
-			btc_collateral: btcCollateral,
+			btc_collateral: btcCollateral.toFixed(0),
 			loan_amount: loanAmount_,
 			loan_to_value: loanToValue,
 			btc_price: btcPrice_,
@@ -100,38 +106,84 @@ export default function BorrowPage() {
 		}
 	};
 
-	//1c8ebcf09e385204d09b71ffbb3472f949c219837a1adffe0708db7556b8c81d
 	const depositCollateral = async () => {
 		let transactionId;
-
-		// try {
-		// 	let txid = await window.unisat.sendBitcoin(initHtclAddress, btcCollateral);
-		// 	console.log('transactionId ->', txid);
-		// 	transactionId = txid;
-		// } catch (e) {
-		// 	console.log('Error sending Bitcoin:', e);
-		// }
 
 		setLoadingStep2(true);
 
 		try {
-			const res = await fetch('/api/deposit-collateral', {
-				method: 'POST',
+			let txid = await window.unisat.sendBitcoin(initHtclAddress, btcCollateral);
+			console.log('transactionId ->', txid);
+			transactionId = txid;
+		} catch (e) {
+			console.log('Error sending Bitcoin:', e);
+			return;
+		}
+
+		try {
+			const res = await fetch(`/api/update-loan-data/${loanId}`, {
+				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					loan_id: loanId,
-					tx_id: '45908c56a2f71f9b19c4758838fa06ad148ed142a2c0bdf3c940f92ded30acd5',
+					deposit_txid: transactionId,
 				}),
 			});
 
 			const data = await res.json();
+			setDepositTxid(transactionId);
 			console.log(data);
 			setLoadingStep2(false);
 		} catch (e) {
 			console.log('Error deposit collateral:', e);
 			setLoadingStep2(false);
+		}
+	};
+
+	const continuePostDeposit = async () => {
+		setLoadingStep3(true);
+
+		try {
+			const res = await fetch(`/api/save-deposit-txhex/${loanId}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					deposit_txid: depositTxid,
+				}),
+			});
+
+			const data = await res.json();
+			console.log(data);
+			setLoadingStep3(false);
+			handleNext();
+		} catch (e) {
+			console.log('Error deposit collateral:', e);
+			setLoadingStep3(false);
+		}
+	};
+
+	const startTransferringCollateral = async () => {
+		setLoadingStep4(true);
+
+		try {
+			const res = await fetch(`/api/start-loan/${loanId}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({}),
+			});
+
+			const data = await res.json();
+			console.log(data);
+			setLoadingStep4(false);
+			handleNext();
+		} catch (e) {
+			console.log('Error deposit collateral:', e);
+			setLoadingStep4(false);
 		}
 	};
 
@@ -156,8 +208,8 @@ export default function BorrowPage() {
 					<CardProvider>
 						<div className='flex flex-col gap-4 p-4'>
 							<h1 className='text-center font-medium'>Borrow</h1>
-							<div className='flex flex-row justify-center items-center gap-2'>
-								<div className='text-5xl font-semibold'>$</div>
+							<div className='relative w-fit'>
+								<span className='absolute left-3 top-1/2 -translate-y-1/2 text-5xl text-gray-500 font-medium'>$</span>
 								<input
 									className='text-center max-w-[320px] text-5xl font-semibold'
 									type='text'
@@ -203,7 +255,7 @@ export default function BorrowPage() {
 									<div>
 										{btcPriceIsLoading
 											? 'Loading..'
-											: btcPrice.toLocaleString('en-US', {
+											: btcPrice?.toLocaleString('en-US', {
 													style: 'currency',
 													currency: 'USD',
 											  })}
@@ -281,21 +333,51 @@ OP_ENDIF`}
 									</div>
 								</div>
 							</div>
-
-							<ButtonProvider
-								loading={loadingStep2}
-								onClick={depositCollateral}>
-								Deposit Collateral{' '}
-							</ButtonProvider>
+							{depositTxid ? (
+								<div className='flex  flex-col gap-0 w-full'>
+									<ButtonProvider
+										disabled
+										loading={loadingStep2}
+										onClick={depositCollateral}>
+										<CheckIcon /> Deposited!
+									</ButtonProvider>
+									<div className='text-center mb-4 text-sm'>Transaction: {shortenAddress(depositTxid, 10, 10)}</div>
+									<ButtonProvider
+										loading={loadingStep3}
+										onClick={continuePostDeposit}>
+										Continue
+									</ButtonProvider>
+								</div>
+							) : (
+								<ButtonProvider
+									loading={loadingStep2}
+									onClick={depositCollateral}>
+									Deposit Collateral
+								</ButtonProvider>
+							)}
 						</div>
 					</CardProvider>
 				)}
 				{activeStep === 2 && (
 					<CardProvider>
 						<div className='flex flex-col gap-4 p-4'>
-							<h1 className='text-center font-medium'>Loan is Ready!</h1>
-							<div className='text-5xl text-center font-semibold'>${loanAmount}</div>
-							<div>has been deposited to your account</div>{' '}
+							<div className='flex flex-col gap-2'>
+								<h1 className='text-center font-semibold text-xl'>Your funds is ready!</h1>
+								<div className='text-center text-sm px-2'>To initiate the loan and receive funds, click continue to transfer the BTC collateral to the P2SH Collateral address</div>
+							</div>
+
+							<div className='flex flex-col justify-center items-center w-full'>
+								<Image
+									src='/images/transferbtc.png'
+									alt='Logo'
+									width={320}
+									height={100}
+								/>
+								<div className='flex w-full justify-around items-center'>
+									<div className='text-xs'>{shortenAddress(initHtclAddress)}</div>
+									<div className='text-xs'>Collateral Address</div>
+								</div>
+							</div>
 							<Accordion>
 								<AccordionSummary
 									expandIcon={<ChevronDown />}
@@ -321,6 +403,20 @@ OP_ENDIF`}
 									/>
 								</AccordionDetails>
 							</Accordion>
+							<ButtonProvider
+								loading={loadingStep4}
+								onClick={startTransferringCollateral}>
+								Continue
+							</ButtonProvider>
+						</div>
+					</CardProvider>
+				)}
+				{activeStep === 3 && (
+					<CardProvider>
+						<div className='flex flex-col gap-4 p-4'>
+							<h1 className='text-center font-medium'>Loan is Ready!</h1>
+							<div className='text-5xl text-center font-semibold'>${loanAmount}</div>
+							<div>has been deposited to your account</div>{' '}
 							<div className='border border-gray-300 flex flex-col gap-1 p-3 rounded-md'>
 								<div className='flex flex-row justify-between items-center'>
 									<div>Loan-to-value (LTV)</div>
@@ -384,21 +480,3 @@ const getPublicKey = async () => {
 		console.log(e);
 	}
 };
-
-function formatUnix(unixTimestamp) {
-	const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-	return new Date(unixTimestamp * 1000).toLocaleString('en-US', {
-		timeZone: userTimeZone,
-		year: 'numeric',
-		month: 'short',
-		day: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-	});
-}
-
-function shortenAddress(addr, start = 7, end = 5) {
-	if (!addr || addr.length <= start + end) return addr;
-	return `${addr.slice(0, start)}....${addr.slice(-end)}`;
-}

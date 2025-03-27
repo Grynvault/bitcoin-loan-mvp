@@ -9,6 +9,5 @@ import { useApp } from '@/context/AppContext';
 export default function Home() {
 	const { user } = useApp();
 
-	if (!user) return <ConnectWallet />;
-	else return <Dashboard />;
+	return <Dashboard />;
 }
