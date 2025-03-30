@@ -85,7 +85,11 @@ export async function getLoanById(loanId) {
  * Updates a loan by ID with the provided fields.
  *
  * @param {number} id - The ID of the loan to update
- * @param {Object} updates - Fields to update (e.g., { loan_amount, loan_duration })
+ * @param {Object} updates - {
+ *
+ *
+ *  }
+ *
  * @returns {Promise<Object>} The updated loan record
  */
 export async function updateLoan(id, updates) {
@@ -93,11 +97,61 @@ export async function updateLoan(id, updates) {
 		throw new Error('Invalid loan ID');
 	}
 
-	const { data, error } = await supabase.from('loans').update(updates).eq('id', id).select().single();
+	//Update loan first
+	const { data: loanData, error: updateLoanError } = await supabase.from('loans').update(updates).eq('id', id).select().single();
 
-	if (error) {
+	if (updateLoanError) {
 		throw new Error(`Failed to update loan: ${error.message}`);
 	}
 
-	return data;
+	return loanData;
+}
+
+{
+	/**
+	 * 
+	 * loan_duration: loan_duration,
+		total_loan_withdrawn: 0,
+		init_timelock: lockTime,
+		init_htlc_address: address,
+		status: 'finalized',
+		collateral_timelock: lockTime,
+		collateral_htlc_address: address,
+		collateral_preimage: collateralPreimage,
+		collateral_txhex: transactionToHex,
+		loan_amount: loan_amount,
+		borrower_pub_key: borrower_pub_key
+		start_loan_txid: txid
+	 */
+}
+
+export async function startLoan(id, updates) {
+	if (!id || isNaN(id)) {
+		throw new Error('Invalid loan ID');
+	}
+
+	//Update loan first
+	const { data: loanData, error: updateLoanError } = await supabase.from('loans').update(updates).eq('id', id).select().single();
+
+	if (updateLoanError) {
+		throw new Error(`Failed to update loan: ${error.message}`);
+	}
+
+	//Get existing USD account balance
+	const { data: accountData, error: getAccountError } = await supabase.from('users').select('usd_balance').eq('pub_key', updates.borrower_pub_key).single();
+
+	if (getAccountError) {
+		throw new Error(`Failed to get account: ${error.message}`);
+	}
+
+	const newBalance = Number(accountData.usd_balance || 0) + Number(updates.loan_amount || 0);
+
+	// 💰 Update account with new balance
+	const { data: updatedAccount, error: updateAccountError } = await supabase.from('users').update({ usd_balance: newBalance }).eq('id', account.id).select().single();
+
+	if (updateAccountError) {
+		throw new Error(`Failed to update account: ${updateAccountError.message}`);
+	}
+
+	return { loan: loanData, account: updatedAccount };
 }

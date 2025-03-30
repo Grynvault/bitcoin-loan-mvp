@@ -6,13 +6,14 @@ import * as ecc from 'tiny-secp256k1';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
-import { getLoanById, updateLoan } from '@/lib/db/loan';
+import { getLoanById, updateLoan, startLoan } from '@/lib/db/loan';
+import { broadcastTx } from '@/lib/bitcoin/broadcastTx';
 
 export async function POST(request, { params }) {
 	const { id } = await params;
 
 	const loanDetails = await getLoanById(id);
-	const { btc_collateral, borrower_pub_key, loan_duration, init_preimage, init_redeem_script_hex, deposit_txid, deposit_txhex } = loanDetails;
+	const { btc_collateral, loan_amount, borrower_pub_key, loan_duration, init_preimage, init_redeem_script_hex, deposit_txid, deposit_txhex } = loanDetails;
 	console.log('loanDetails ->', loanDetails);
 
 	const TESTNET = bitcoin.networks.testnet; // Testnet
@@ -108,7 +109,9 @@ export async function POST(request, { params }) {
 
 	const transactionToHex = psbt.extractTransaction().toHex();
 
-	console.log('Final TX Hex:', transactionToHex);
+	console.log('Final TX Hex before broadcast:', transactionToHex);
+	const txid = await broadcastTx(transactionToHex);
+	console.log('Broadcasted TXID →', txid);
 
 	const bodyToServer = {
 		loan_duration: loan_duration,
@@ -120,13 +123,16 @@ export async function POST(request, { params }) {
 		collateral_htlc_address: address,
 		collateral_preimage: collateralPreimage,
 		collateral_txhex: transactionToHex,
+		loan_amount: loan_amount,
+		borrower_pub_key: borrower_pub_key,
+		start_loan_txid: txid,
 	};
 
 	try {
-		const updated = await updateLoan(id, bodyToServer);
+		const updated = await startLoan(id, bodyToServer);
 		return NextResponse.json({
 			success: true,
-			body: updated,
+			body: { ...updated, txid: txid },
 		});
 	} catch (err) {
 		return NextResponse.json({ success: false, error: err.message }, { status: 400 });

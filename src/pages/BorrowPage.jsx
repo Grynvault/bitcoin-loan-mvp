@@ -41,6 +41,8 @@ export default function BorrowPage() {
 	const [loadingStep3, setLoadingStep3] = useState(false);
 	//Step 3 (Transfer BTC to collateral address)
 	const [loadingStep4, setLoadingStep4] = useState(false);
+	//Step 4 (Complete)
+	const [startLoanTxid, setStartLoanTxid] = useState(null);
 
 	const handleChangeDays = (event, newValue) => {
 		setDays(newValue);
@@ -122,7 +124,7 @@ export default function BorrowPage() {
 
 		try {
 			const res = await fetch(`/api/update-loan-data/${loanId}`, {
-				method: 'PATCH',
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -146,7 +148,7 @@ export default function BorrowPage() {
 
 		try {
 			const res = await fetch(`/api/save-deposit-txhex/${loanId}`, {
-				method: 'PATCH',
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
@@ -180,6 +182,7 @@ export default function BorrowPage() {
 			const data = await res.json();
 			console.log(data);
 			setLoadingStep4(false);
+			setStartLoanTxid(data.txid);
 			handleNext();
 		} catch (e) {
 			console.log('Error deposit collateral:', e);

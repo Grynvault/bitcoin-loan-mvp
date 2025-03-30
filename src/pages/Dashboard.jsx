@@ -1,6 +1,6 @@
 /** @format */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 //MUI Import
 import CircularProgress from '@mui/material/CircularProgress';
@@ -12,7 +12,7 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
-import { useUserBtcBalance, useBtcPrice } from '@/lib/api';
+import { useUserBtcBalance, useBtcPrice, useUserData } from '@/lib/api';
 import { shortenAddress } from '@/lib/util';
 
 export default function Dashboard() {
@@ -42,40 +42,22 @@ export default function Dashboard() {
 }
 
 const LoanCard = ({ user }) => {
-	const { setUser } = useApp();
-	const [loading, setLoading] = useState(false);
-
+	const { data: userData } = useUserData();
+	const { connectWallet, loadingWalet } = useApp();
 	let route = useRouter();
 
-	const connectWallet = async () => {
-		if (!window.unisat) {
-			alert('Please install the Unisat Wallet extension.');
-			return;
-		}
-
-		setLoading(true);
-
-		try {
-			let accounts = await window.unisat.requestAccounts();
-			console.log(accounts);
-			setUser(accounts[0]);
-			setLoading(false);
-		} catch (e) {
-			console.log('Error connecting wallet =>', e);
-			setLoading(false);
-		}
-	};
+	// ✅ Auto-connect on mount
 
 	const noLoan = true;
 
-	if (!user)
+	if (!userData)
 		return (
 			<CardProvider
 				maxwidth='100%'
 				className='w-full py-6'>
 				<ConnectWallet
 					handleConnectWallet={connectWallet}
-					isLoading={loading}
+					isLoading={loadingWalet}
 				/>
 			</CardProvider>
 		);
