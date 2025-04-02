@@ -145,15 +145,17 @@ export default function BorrowPage() {
 
 	const continuePostDeposit = async () => {
 		setLoadingStep3(true);
-		let deposit_txhex;
 
-		try {
-			const res = await fetch(`https://blockstream.info/testnet/api/tx/${depositTxid}/hex`);
-			deposit_txhex = await res.text();
-			console.log('deposit_txhex ->', deposit_txhex);
-		} catch (err) {
-			console.error('Failed to fetch hex:', err);
+		const res = await fetch(`https://mempool.space/testnet/api/tx/${depositTxid}/hex`);
+
+		if (!res.ok) {
+			console.error('HTTP Error:', res.status, await res.text());
+			setLoadingStep3(false);
+			throw new Error('Transaction not found or unreachable');
 		}
+
+		const deposit_txhex = await res.text();
+		console.log('deposit_txhex ->', deposit_txhex);
 
 		try {
 			const res = await fetch(`/api/save-deposit-txhex/${loanId}`, {
@@ -202,6 +204,7 @@ export default function BorrowPage() {
 	return (
 		<div className='py-14 px-4 md:p-7 flex flex-col justify-center gap-8 w-full'>
 			<h1 className='text-4xl font-bold'>Borrowing</h1>
+			<button onClick={handleBack}>back</button>
 			<div className='w-full flex flex-col justify-center items-center gap-10'>
 				<Stepper activeStep={activeStep}>
 					{steps.map((label, index) => {

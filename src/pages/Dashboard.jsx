@@ -16,20 +16,24 @@ import { useUserBtcBalance, useBtcPrice, useUserData } from '@/lib/api';
 import { shortenAddress } from '@/lib/util';
 
 export default function Dashboard() {
-	const { user } = useApp();
+	const { userAddress } = useApp();
 	const { data: btcBalance, isLoading: isBtcBalanceLoading } = useUserBtcBalance();
 	const { data: btcPrice, isLoading: isBtcPriceLoading } = useBtcPrice();
+	const { data: userData, isLoading: isUserDataLoading } = useUserData();
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
 			<div className='flex flex-row items-center justify-between w-full gap-2'>
 				<h1 className='text-4xl font-bold'>Dashboard</h1>
-				{user && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(user)}</div>}
+				{userAddress && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(userAddress)}</div>}
 			</div>
 			<div className='flex md:flex-row flex-col gap-4 w-full'>
-				<LoanCard user={user} />
+				<LoanCard user={userAddress} />
 				<div className='flex flex-col gap-4 w-full'>
-					<FundCard />
+					<FundCard
+						userFund={userData?.usd_balance}
+						isLoading={isUserDataLoading}
+					/>
 					<BtcFund
 						btcBalance={btcBalance}
 						btcPrice={btcPrice}
