@@ -145,6 +145,15 @@ export default function BorrowPage() {
 
 	const continuePostDeposit = async () => {
 		setLoadingStep3(true);
+		let deposit_txhex;
+
+		try {
+			const res = await fetch(`https://blockstream.info/testnet/api/tx/${depositTxid}/hex`);
+			deposit_txhex = await res.text();
+			console.log('deposit_txhex ->', deposit_txhex);
+		} catch (err) {
+			console.error('Failed to fetch hex:', err);
+		}
 
 		try {
 			const res = await fetch(`/api/save-deposit-txhex/${loanId}`, {
@@ -153,7 +162,7 @@ export default function BorrowPage() {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					deposit_txid: depositTxid,
+					deposit_txhex: deposit_txhex,
 				}),
 			});
 

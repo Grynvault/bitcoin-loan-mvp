@@ -3,16 +3,12 @@
 import { NextResponse } from 'next/server';
 import { updateLoan } from '@/lib/db/loan';
 
+export const runtime = 'nodejs'; // ✅ This line forces full Node support
+
 export async function POST(request, { params }) {
 	const { id } = await params;
 	const body = await request.json();
-	const { deposit_txid } = body;
-
-	console.log('body in save-deposit-txhex ->', body);
-
-	//Get transaction hex based on txid
-	const hexRes = await fetch(`https://mempool.space/testnet/api/tx/${deposit_txid}/hex`);
-	const deposit_txhex = await hexRes.text();
+	const { deposit_txhex } = body;
 
 	console.log('txHex ->', deposit_txhex);
 
