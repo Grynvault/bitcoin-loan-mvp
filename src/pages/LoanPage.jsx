@@ -23,6 +23,53 @@ function LoanPage() {
 	const loanPaid = true;
 	const loanCompleted = false;
 
+	const [loading1, setLoading1] = useState(false);
+	const [loading2, setLoading2] = useState(false);
+	const [unsignedPsbt, setUnsignedPsbt] = useState(null);
+
+	const payLoan = async () => {
+		setLoading1(true);
+
+		try {
+			const res = await fetch(`/api/pay-loan/${userLoan.id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({}),
+			});
+
+			const data = await res.json();
+			console.log(data);
+			setUnsignedPsbt(data.loan.unsigned_psbt_hex);
+			setLoading1(false);
+		} catch (e) {
+			console.log('Error pay loan:', e);
+			setLoading1(false);
+		}
+	};
+
+	const signToGetBackCollateral = async () => {
+		setLoading2(true);
+		try {
+			let res = await window.unisat.signPsbt(unsignedPsbt, {
+				autoFinalized: false,
+				toSignInputs: [
+					{
+						index: 0,
+						address: userData.wallet_address,
+					},
+				],
+			});
+
+			console.log('res =', res);
+			setLoading2(false);
+		} catch (error) {
+			console.log('Error', error);
+			setLoading2(false);
+		}
+	};
+
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
 			<div className='flex flex-row items-center justify-between w-full gap-2'>
@@ -102,8 +149,17 @@ function LoanPage() {
 									</div>
 								</div>
 							</div>
-							<ButtonProvider>Simulate Pay Loan</ButtonProvider>
-							<ButtonProvider>Unlock Collateral</ButtonProvider>
+							<ButtonProvider
+								onClick={payLoan}
+								loading={loading1}>
+								Simulate Pay Loan
+							</ButtonProvider>
+							{unsignedPsbt && <div>{unsignedPsbt}</div>}
+							<ButtonProvider
+								onClick={signToGetBackCollateral}
+								loading={loading2}>
+								Unlock Collateral
+							</ButtonProvider>
 						</div>
 					</CardProvider>
 				) : (

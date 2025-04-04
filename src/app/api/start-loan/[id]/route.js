@@ -117,7 +117,7 @@ export async function POST(request, { params }) {
 		loan_duration: loan_duration,
 		total_loan_withdrawn: 0,
 		init_htlc_address: address,
-		status: 'finalized',
+		status: 'active',
 		collateral_timelock: lockTime,
 		collateral_htlc_address: address,
 		collateral_preimage: collateralPreimage,
@@ -151,19 +151,20 @@ function toBufferSigner(ecpair) {
 }
 
 // Fake body
-
 // const bodyToServer = {
-// 	loan_duration: 2,
+// 	loan_duration: 3,
 // 	total_loan_withdrawn: 0,
-// 	init_timelock: 1743591807,
-// 	init_htlc_address: '2N2Ty1xd66yFyConUp2gFXvV78a3hi5heuA',
-// 	status: 'finalized',
-// 	collateral_timelock: 1743591807,
-// 	collateral_htlc_address: '2N2Ty1xd66yFyConUp2gFXvV78a3hi5heuA',
+// 	init_htlc_address: '2MvmeE6Xk5qUSAGPR5h4tVVqFFYZ4GborAZ',
+// 	status: 'active',
+// 	collateral_timelock: 1743794760,
+// 	collateral_htlc_address: '2MvmeE6Xk5qUSAGPR5h4tVVqFFYZ4GborAZ',
 // 	collateral_preimage: 'secrect_for_collateral_htlc',
 // 	collateral_txhex:
-// 		'0200000001d1384319a8b7517faaa647e6177404b258da3a9d9ee44d9d7306ea188e6da86b00000000d84730440220241656faf21d24a36c9aa67dd7bd5f19d6a0bbb93f30c4c40c85c5e4fb997f86022041c28b2d0bfe20f11e55dcbb63249dc9bade1dac6f4132b56259f83c6c37b1d801197365637265745f666f725f74656d706f726172795f68746c63004c736304a4ffec67b1752102ddc59466da05af6e1d64d5009cfd1069bc1e8dba743ac4616875ff71f81e9758ac67a8207817ded1e17cd65a5ce3c678bfce2461213b43272c4b77426558c6fe8f3726c58821036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052ac68ffffffff01be4000000000000017a91465220ad4ab037b99dbd56b3f72867b440b08ddaa8700000000',
+// 		'0200000001d7b1a7b5e390232d0dc30049e99f86a58971856c2bd4f309dd72fbda07cffa3a00000000d9483045022100cdc0ce1e678496a607a45befc83b03fb758f4df455356cdd6ce2a0ff454749d6022044fd8147c7af0982c8e31ed214d13cee9a25b9584cc1e9fe4291bd71dde45cf701197365637265745f666f725f74656d706f726172795f68746c63004c736304580af067b17521036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052ac67a8207817ded1e17cd65a5ce3c678bfce2461213b43272c4b77426558c6fe8f3726c58821036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052ac68ffffffff01394200000000000017a91426a916d4efbd2edda3fe3d81377d970698e598e28700000000',
 // 	loan_amount: 1000,
-// 	borrower_pub_key: '02ddc59466da05af6e1d64d5009cfd1069bc1e8dba743ac4616875ff71f81e9758',
-// 	start_loan_txid: 'f6c749e477a7dc29e8185f7c884f7d9e834128dea632ad2cecdd2fdda85d5470',
+// 	borrower_pub_key: '036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052',
+// 	start_loan_txid: 'ff740bc4f1393d6d5ddadda551f57ec388957a9b42233167c2419580b99fb6c3',
+// 	btc_locked: 16953,
+// 	collateral_redeem_script_hex:
+// 		'63044832f067b17521036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052ac67a82074c972a2689bd011b990a879aecc18dd5b979acba9146e68a34f0e96f2e173278821036617e61ead19cf1697fb4a1081f640c5b335cdbb3a6e6c8ad4dcd55c37193052ac68',
 // };

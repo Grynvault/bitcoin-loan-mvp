@@ -139,6 +139,8 @@ export async function startLoan(id, updates) {
 		throw new Error(`Failed to update loan: ${error.message}`);
 	}
 
+	console.log('Successfully update loan on DB');
+
 	//Get existing USD account balance
 	const { data: accountData, error: getAccountError } = await supabase.from('users').select('id, usd_balance').eq('pub_key', updates.borrower_pub_key).single();
 
