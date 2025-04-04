@@ -12,14 +12,15 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
-import { useUserBtcBalance, useBtcPrice, useUserData } from '@/lib/api';
-import { shortenAddress } from '@/lib/util';
+import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan } from '@/lib/api';
+import { shortenAddress, formatUnix, getTimeLeft } from '@/lib/util';
 
 export default function Dashboard() {
 	const { userAddress } = useApp();
 	const { data: btcBalance, isLoading: isBtcBalanceLoading } = useUserBtcBalance();
 	const { data: btcPrice, isLoading: isBtcPriceLoading } = useBtcPrice();
 	const { data: userData, isLoading: isUserDataLoading } = useUserData();
+	const { data: userLoan, isLoading: isUserLoanLoading } = useUserLoan();
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
@@ -28,7 +29,12 @@ export default function Dashboard() {
 				{userAddress && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(userAddress)}</div>}
 			</div>
 			<div className='flex md:flex-row flex-col gap-4 w-full'>
-				<LoanCard user={userAddress} />
+				<LoanCard
+					userData={userData}
+					userLoan={userLoan}
+					btcPrice={btcPrice}
+					isUserLoanLoading={isUserLoanLoading}
+				/>
 				<div className='flex flex-col gap-4 w-full'>
 					<FundCard
 						userFund={userData?.usd_balance}
@@ -45,14 +51,18 @@ export default function Dashboard() {
 	);
 }
 
-const LoanCard = ({ user }) => {
-	const { data: userData } = useUserData();
+const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 	const { connectWallet, loadingWalet } = useApp();
 	let route = useRouter();
 
-	// ✅ Auto-connect on mount
-
-	const noLoan = true;
+	if (isUserLoanLoading)
+		return (
+			<CardProvider
+				maxwidth='100%'
+				className='w-full h-full py-6'>
+				<div className='flex items-center w-full h-full justify-center'>Loading Loan...</div>
+			</CardProvider>
+		);
 
 	if (!userData)
 		return (
@@ -66,7 +76,7 @@ const LoanCard = ({ user }) => {
 			</CardProvider>
 		);
 
-	if (noLoan)
+	if (!userLoan)
 		return (
 			<CardProvider
 				maxwidth='100%'
@@ -83,16 +93,17 @@ const LoanCard = ({ user }) => {
 				maxwidth='100%'
 				className='w-full'>
 				<div className='w-full p-4 flex flex-col gap-4'>
-					<div className='text-sm'>Amount due in 7 days</div>
+					{/* Present day - userLoan.collateral_timelock (convert from UTC to actual time) -> convert in days */}
+					<div className='text-sm'>Amount due in {getTimeLeft(userLoan.collateral_timelock)}</div>
 					<div className='flex flex-row flex-wrap w-full justify-between items-center gap-4'>
 						<div className='flex flex-col gap-1'>
-							<div className='text-4xl font-bold'>$1,000.00</div>
+							<div className='text-4xl font-bold'>{userLoan.loan_amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
 							<div className='flex items-center justify-start gap-2'>
 								<div className='flex items-center gap-\ text-sm'>
 									<LockedIcon />
-									0.04 BTC
+									{(userLoan.btc_collateral * 1e-8).toFixed(6)} BTC
 								</div>
-								<div className='text-sm'>($2,500)</div>
+								<div className='text-sm'>{(userLoan.btc_collateral * btcPrice * 1e-8).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
 							</div>
 						</div>
 						<ButtonProvider>Make Payment</ButtonProvider>
@@ -101,20 +112,20 @@ const LoanCard = ({ user }) => {
 						<div className='flex flex-col gap-1 flex-1'>
 							<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 								<div>LTV</div>
-								<div>70%</div>
+								<div>{userLoan.loan_to_value}%</div>
 							</div>
 							<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 								<div>BTC Collateral</div>
-								<div>0.02 BTC</div>
+								<div>{(userLoan.btc_collateral * 1e-8).toFixed(6)} BTC</div>
 							</div>
 							<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 								<div className='whitespace-nowrap'>P2SH Collateral</div>
 								<a
 									className='font-bold underline'
-									href='http://mempool.space/testnet/address/2MvXdRfpecoFp3yjZHYbtaDhuTk5mDLHkZA'
+									href={`http://mempool.space/testnet/address/${userLoan.collateral_htlc_address}`}
 									target='_blank'
 									rel='noreferrer'>
-									{shortenAddress('2MvXdRfpecoFp3yjZHYbtaDhuTk5mDLHkZA', 5, 5)}
+									{shortenAddress(userLoan.collateral_htlc_address, 5, 5)}
 								</a>
 							</div>
 						</div>
@@ -125,7 +136,7 @@ const LoanCard = ({ user }) => {
 							</div>
 							<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 								<div className='whitespace-nowrap'>Due date</div>
-								<div className='whitespace-nowrap'>Mar 28, 2025 10:00PM</div>
+								<div className='whitespace-nowrap'>{formatUnix(userLoan.collateral_timelock)}</div>
 							</div>
 							<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 								<div>Fees</div>

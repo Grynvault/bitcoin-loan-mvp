@@ -53,6 +53,27 @@ export const useUserData = () => {
 	};
 };
 
+export const useUserLoan = () => {
+	const { userAddress } = useApp();
+
+	const { data, isLoading, isError } = useQuery({
+		queryKey: ['userLoan', userAddress],
+		queryFn: async () => {
+			const { data, error } = await supabase.from('loans').select('*').eq('borrower_segwit_address', userAddress).single();
+
+			if (error) throw new Error(error.message);
+			return data;
+		},
+		enabled: !!userAddress,
+	});
+
+	return {
+		data,
+		isLoading: isLoading,
+		isError,
+	};
+};
+
 export const useUserBtcBalance = () => {
 	const { userAddress } = useApp();
 	const { data, isLoading, isError } = useQuery({

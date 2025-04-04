@@ -10,7 +10,21 @@ export function formatUnix(unixTimestamp) {
 		day: '2-digit',
 		hour: '2-digit',
 		minute: '2-digit',
+		hour12: true,
 	});
+}
+
+export function getTimeLeft(futureUnix) {
+	const now = Math.floor(Date.now() / 1000); // current time in seconds
+	const secondsLeft = futureUnix - now;
+
+	if (secondsLeft <= 0) return 'Expired';
+
+	const days = Math.floor(secondsLeft / 86400);
+	const hours = Math.floor((secondsLeft % 86400) / 3600);
+	const minutes = Math.floor((secondsLeft % 3600) / 60);
+
+	return `${days}d ${hours}h ${minutes}m left`;
 }
 
 export function shortenAddress(addr, start = 5, end = 5) {
