@@ -81,17 +81,6 @@ export async function getLoanById(loanId) {
 	return data;
 }
 
-/**
- * Updates a loan by ID with the provided fields.
- *
- * @param {number} id - The ID of the loan to update
- * @param {Object} updates - {
- *
- *
- *  }
- *
- * @returns {Promise<Object>} The updated loan record
- */
 export async function updateLoan(id, updates) {
 	if (!id || isNaN(id)) {
 		throw new Error('Invalid loan ID');
@@ -105,6 +94,51 @@ export async function updateLoan(id, updates) {
 	}
 
 	return loanData;
+}
+
+export async function updatePaidLoan(id, updates) {
+	if (!id || isNaN(id)) {
+		throw new Error('Invalid loan ID');
+	}
+
+	//Update loan first
+	const { data: loanData, error: updateLoanError } = await supabase.from('loans').update(updates).eq('id', id).select().single();
+
+	if (updateLoanError) {
+		throw new Error(`Failed to update loan: ${error.message}`);
+	}
+	//Get existing USD account balance
+	const { data: accountData, error: getAccountError } = await supabase.from('users').select('id, usd_balance').eq('pub_key', updates.borrower_pub_key).single();
+
+	if (getAccountError) {
+		throw new Error(`Failed to get account: ${error.message}`);
+	}
+
+	const newBalance = Number(accountData.usd_balance || 0) - Number(updates.loan_amount || 0);
+
+	console.log('newBalance ->', newBalance);
+
+	// 💰 Update account with new balance
+	const { data: updatedAccount, error: updateAccountError } = await supabase.from('users').update({ usd_balance: newBalance }).eq('id', accountData.id).select().single();
+
+	if (updateAccountError) {
+		throw new Error(`Failed to update account: ${updateAccountError.message}`);
+	}
+
+	return loanData;
+}
+
+export async function updateCollateralUnlocked(id, updates) {
+	if (!id || isNaN(id)) {
+		throw new Error('Invalid loan ID');
+	}
+
+	//Update loan first
+	const { data: loanData, error: updateLoanError } = await supabase.from('loans').update(updates).eq('id', id).select().single();
+
+	if (updateLoanError) {
+		throw new Error(`Failed to update loan: ${error.message}`);
+	}
 }
 
 {

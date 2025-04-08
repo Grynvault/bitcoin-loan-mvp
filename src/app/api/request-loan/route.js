@@ -87,7 +87,7 @@ export async function POST(request) {
 		init_timelock: lockTime,
 		init_htlc_address: address,
 		init_preimage: firstPreimage,
-		status: 'initialize',
+		status: 'collateral_pending',
 		collateral_timelock: null,
 		collateral_htlc_address: null,
 		init_redeem_script_hex: initHtclRedeemScript.toString('hex'),

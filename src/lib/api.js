@@ -65,6 +65,7 @@ export const useUserLoan = () => {
 			return data;
 		},
 		enabled: !!userAddress,
+		refetchOnWindowFocus: false,
 	});
 
 	return {

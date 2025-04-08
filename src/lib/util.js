@@ -14,6 +14,10 @@ export function formatUnix(unixTimestamp) {
 	});
 }
 
+export function formatUsd(usd) {
+	return (usd / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
 export function getTimeLeft(futureUnix) {
 	const now = Math.floor(Date.now() / 1000); // current time in seconds
 	const secondsLeft = futureUnix - now;

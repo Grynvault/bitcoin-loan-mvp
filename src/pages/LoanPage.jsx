@@ -22,10 +22,10 @@ function LoanPage() {
 	const { data: userLoan, isLoading: isUserLoanLoading } = useUserLoan();
 	const loanPaid = true;
 	const loanCompleted = false;
-
 	const [loading1, setLoading1] = useState(false);
 	const [loading2, setLoading2] = useState(false);
 	const [unsignedPsbt, setUnsignedPsbt] = useState(null);
+	const [unlockTxid, setUnlockTxid] = useState(null);
 
 	const payLoan = async () => {
 		setLoading1(true);
@@ -50,7 +50,10 @@ function LoanPage() {
 	};
 
 	const signToGetBackCollateral = async () => {
+		let signedTransaction;
+
 		setLoading2(true);
+
 		try {
 			let res = await window.unisat.signPsbt(unsignedPsbt, {
 				autoFinalized: false,
@@ -63,9 +66,30 @@ function LoanPage() {
 			});
 
 			console.log('res =', res);
+			signedTransaction = res;
 			setLoading2(false);
 		} catch (error) {
 			console.log('Error', error);
+			setLoading2(false);
+		}
+
+		try {
+			const res = await fetch(`api/unlock-collateral/${userLoan.id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					signed_psbt: signedTransaction,
+				}),
+			});
+
+			const data = await res.json();
+			console.log(data);
+			setUnlockTxid(data.txid);
+			setLoading2(false);
+		} catch (e) {
+			console.log('Error unlock collateral:', e);
 			setLoading2(false);
 		}
 	};
@@ -160,6 +184,14 @@ function LoanPage() {
 								loading={loading2}>
 								Unlock Collateral
 							</ButtonProvider>
+							{unlockTxid && (
+								<a
+									href={`https://mempool.space/testnet/tx/${unlockTxid}`}
+									target='_blank'
+									rel='noreferrer'>
+									{unlockTxid}
+								</a>
+							)}
 						</div>
 					</CardProvider>
 				) : (
@@ -213,7 +245,11 @@ function LoanPage() {
 									</div>
 								</div>
 							</div>
-							<ButtonProvider>Make Payment</ButtonProvider>
+							<ButtonProvider
+								onClick={payLoan}
+								loading={loading1}>
+								Make Payment
+							</ButtonProvider>
 						</div>
 					</CardProvider>
 				)}

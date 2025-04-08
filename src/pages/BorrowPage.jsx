@@ -1,6 +1,6 @@
 /** @format */
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 //MUI import
 import Slider from '@mui/material/Slider';
@@ -64,6 +64,10 @@ export default function BorrowPage() {
 
 	const notEnoughFunds = calculateBtcCollateral() > btcBalance / 1e8;
 
+	/**
+	 *
+	 * STEP 1: Request a loan
+	 */
 	const requestLoan = async () => {
 		const userSegwitAddress = await connectUnisat();
 		const userPubKey = await getPublicKey();
@@ -86,7 +90,7 @@ export default function BorrowPage() {
 		setLoadingStep1(true);
 
 		try {
-			const res = await fetch('/api/initiate-loan', {
+			const res = await fetch('/api/request-loan', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -108,6 +112,10 @@ export default function BorrowPage() {
 		}
 	};
 
+	/**
+	 *
+	 * STEP 2: Deposit Collateral
+	 */
 	const depositCollateral = async () => {
 		let transactionId;
 
@@ -143,6 +151,10 @@ export default function BorrowPage() {
 		}
 	};
 
+	/**
+	 *
+	 * STEP 2b: Save txhex of deposit
+	 */
 	const continuePostDeposit = async () => {
 		setLoadingStep3(true);
 
@@ -178,6 +190,10 @@ export default function BorrowPage() {
 		}
 	};
 
+	/*
+	 * STEP 3: Transfer BTC to collateral address
+	 *
+	 */
 	const startTransferringCollateral = async () => {
 		setLoadingStep4(true);
 

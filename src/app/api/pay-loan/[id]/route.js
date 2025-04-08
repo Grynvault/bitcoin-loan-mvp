@@ -6,7 +6,7 @@ import * as ecc from 'tiny-secp256k1';
 import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
-import { updateLoan, getLoanById } from '@/lib/db/loan';
+import { updatePaidLoan, getLoanById } from '@/lib/db/loan';
 
 export async function POST(request, { params }) {
 	const { id } = await params;
@@ -14,14 +14,9 @@ export async function POST(request, { params }) {
 	const loanDetails = await getLoanById(id);
 	console.log('loanDetails ->', loanDetails);
 
-	const { btc_locked, start_loan_txid, borrower_segwit_address, collateral_txhex, collateral_redeem_script_hex, collateral_preimage } = loanDetails;
+	const { btc_locked, start_loan_txid, borrower_segwit_address, borrower_pub_key, collateral_txhex, collateral_redeem_script_hex, loan_amount } = loanDetails;
 
 	const TESTNET = bitcoin.networks.testnet; // Testnet
-	const ECPair = ECPairFactory(ecc);
-
-	const grynvaultPrivateKey = process.env.GRYNVAULT_BUFFERED_PRIVATE_KEY;
-	const grynvaultBufferedPrivateKey = Buffer.from(grynvaultPrivateKey.toString('hex'), 'hex');
-	const grynvault = ECPair.fromPrivateKey(grynvaultBufferedPrivateKey);
 
 	const utxo = {
 		txid: start_loan_txid,
@@ -50,9 +45,12 @@ export async function POST(request, { params }) {
 	console.log('Unsigned PSBT:', psbt.toBase64());
 
 	try {
-		const updated = await updateLoan(id, {
+		const updated = await updatePaidLoan(id, {
+			paid_at_timestamp: Math.floor(Date.now() / 1000),
 			unsigned_psbt_hex: psbt.toBase64(),
-			status: 'paid',
+			borrower_pub_key: borrower_pub_key,
+			loan_amount: loan_amount,
+			status: 'repaid',
 		});
 		return NextResponse.json({ success: true, loan: updated });
 	} catch (err) {

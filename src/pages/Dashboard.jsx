@@ -13,7 +13,7 @@ import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
 import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan } from '@/lib/api';
-import { shortenAddress, formatUnix, getTimeLeft } from '@/lib/util';
+import { shortenAddress, formatUnix, getTimeLeft, formatUsd } from '@/lib/util';
 
 export default function Dashboard() {
 	const { userAddress } = useApp();
@@ -83,7 +83,7 @@ const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 				className='w-full'>
 				<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
 					<div className='font-semibold text-2xl'>You have no loan</div>
-					<ButtonProvider onClick={() => route.push('/borrow')}>Initiate Loan</ButtonProvider>
+					<ButtonProvider onClick={() => route.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
 				</div>
 			</CardProvider>
 		);
@@ -97,13 +97,13 @@ const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 					<div className='text-sm'>Amount due in {getTimeLeft(userLoan.collateral_timelock)}</div>
 					<div className='flex flex-row flex-wrap w-full justify-between items-center gap-4'>
 						<div className='flex flex-col gap-1'>
-							<div className='text-4xl font-bold'>{userLoan.loan_amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+							<div className='text-4xl font-bold'>{formatUsd(userLoan.loan_amount)}</div>
 							<div className='flex items-center justify-start gap-2'>
 								<div className='flex items-center gap-\ text-sm'>
 									<LockedIcon />
 									{(userLoan.btc_collateral * 1e-8).toFixed(6)} BTC
 								</div>
-								<div className='text-sm'>{(userLoan.btc_collateral * btcPrice * 1e-8).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+								<div className='text-sm'>{formatUsd(userLoan.btc_collateral * btcPrice * 1e-6)}</div>
 							</div>
 						</div>
 						<ButtonProvider>Make Payment</ButtonProvider>
@@ -154,7 +154,7 @@ const FundCard = ({ userFund = 0 }) => {
 		<CardProvider>
 			<div className='p-4 flex flex-col gap-2'>
 				<div className='font-medium'>Funds Available</div>
-				<div className='font-semibold text-3xl'>{userFund.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+				<div className='font-semibold text-3xl'>{formatUsd(userFund)}</div>
 				<div className='flex flex-row items-center gap-2'>
 					<ButtonProvider>Deposit</ButtonProvider>
 					<ButtonProvider>Withdraw</ButtonProvider>
