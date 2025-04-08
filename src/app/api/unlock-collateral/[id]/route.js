@@ -69,7 +69,7 @@ export async function POST(request, { params }) {
 	try {
 		const updated = await updateLoan(id, {
 			unlock_collateral_txid: txid,
-			status: 'repaid',
+			status: 'closed',
 		});
 
 		return NextResponse.json({

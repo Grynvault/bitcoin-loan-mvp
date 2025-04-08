@@ -15,7 +15,7 @@ export async function POST(request, { params }) {
 	try {
 		const updated = await updateLoan(id, {
 			deposit_txhex: deposit_txhex,
-			status: 'collateral_deposited',
+			status: 'collateral_received',
 		});
 		return NextResponse.json({ success: true, loan: updated });
 	} catch (err) {

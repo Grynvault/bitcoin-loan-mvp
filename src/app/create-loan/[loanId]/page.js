@@ -1,5 +1,5 @@
 /** @format */
-
+'use client';
 import ContinueNewLoan from '@/pages/ContinueNewLoan';
 import { useParams } from 'next/navigation';
 

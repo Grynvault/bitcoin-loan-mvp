@@ -2,6 +2,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useQueryClient } from '@tanstack/react-query';
 //MUI import
 import Slider from '@mui/material/Slider';
 import Stepper from '@mui/material/Stepper';

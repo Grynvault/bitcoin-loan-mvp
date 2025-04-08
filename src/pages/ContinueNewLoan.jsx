@@ -77,7 +77,7 @@ export default function ContinueNewLoan({ loanId }) {
 	const continuePostDeposit = async () => {
 		setLoadingStep3(true);
 
-		const res = await fetch(`https://mempool.space/testnet/api/tx/${depositTxid}/hex`);
+		const res = await fetch(`https://mempool.space/testnet/api/tx/${depositTxid || loan.deposit_txid}/hex`);
 
 		if (!res.ok) {
 			console.error('HTTP Error:', res.status, await res.text());
@@ -133,7 +133,7 @@ export default function ContinueNewLoan({ loanId }) {
 	};
 
 	if (loanIsLoading) return <div>Loading loan data...</div>;
-	if (isError || !loan) return <div>Failed to load loan.</div>;
+	if (loanIsError || !loan) return <div>Failed to load loan.</div>;
 
 	return (
 		<div className='py-14 px-4 md:p-7 flex flex-col justify-center gap-8 w-full'>
@@ -153,9 +153,9 @@ export default function ContinueNewLoan({ loanId }) {
 					})}
 				</Stepper>
 
-				{() => {
-					switch (loan.status) {
-						case 'collateral_pending':
+				{(() => {
+					switch (loanStatusStep[loan.status]) {
+						case 1:
 							return (
 								<CardProvider>
 									<div className='flex flex-col gap-4 p-4'>
@@ -210,7 +210,7 @@ OP_ENDIF`}
 												</div>
 											</div>
 										</div>
-										{depositTxid ? (
+										{depositTxid || loan.deposit_txid ? (
 											<div className='flex  flex-col gap-0 w-full'>
 												<ButtonProvider
 													disabled
@@ -218,7 +218,7 @@ OP_ENDIF`}
 													onClick={depositCollateral}>
 													<CheckIcon /> Deposited!
 												</ButtonProvider>
-												<div className='text-center mb-4 text-sm'>Transaction: {shortenAddress(depositTxid, 10, 10)}</div>
+												<div className='text-center mb-4 text-sm'>Transaction: {shortenAddress(depositTxid || loan.deposit_txid, 10, 10)}</div>
 												<ButtonProvider
 													loading={loadingStep3}
 													onClick={continuePostDeposit}>
@@ -235,7 +235,7 @@ OP_ENDIF`}
 									</div>
 								</CardProvider>
 							);
-						case 'collateral_received':
+						case 2:
 							return (
 								<CardProvider>
 									<div className='flex flex-col gap-4 p-4'>
@@ -291,7 +291,7 @@ OP_ENDIF`}
 									</div>
 								</CardProvider>
 							);
-						case 'collateral_transferred':
+						case 3:
 							return (
 								<CardProvider>
 									<div className='flex flex-col gap-4 p-4'>
@@ -327,11 +327,11 @@ OP_ENDIF`}
 						default:
 							return (
 								<CardProvider>
-									<div className='flex flex-col gap-4 p-4'>This laon is no longer editable</div>
+									<div className='flex flex-col gap-4 p-4'>This loan is no longer editable</div>
 								</CardProvider>
 							);
 					}
-				}}
+				})()}
 			</div>
 		</div>
 	);
@@ -343,6 +343,7 @@ function ScriptDisplay({ script }) {
 
 const loanStatusStep = {
 	collateral_pending: 1,
+	collateral_deposited: 1,
 	collateral_received: 2,
-	collateral_transferred: 3,
+	active: 3,
 };
