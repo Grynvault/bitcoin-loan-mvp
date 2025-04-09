@@ -3,6 +3,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 //MUI import
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -13,15 +15,17 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 //Components import
 import CardProvider from '@/components/card/CardProvider';
 import ButtonProvider from '@/components/button/ButtonProvider';
+import PageLoading from '@/components/loading/PageLoading';
 import { ChevronDown, CheckIcon } from '@/components/icon/icons';
 //Lib
 import { useUserLoan } from '@/lib/api';
-import { shortenAddress, formatUnix } from '@/lib/util';
+import { shortenAddress, formatUnix, formatUsd } from '@/lib/util';
 
 const steps = ['Request Loan', 'Deposit BTC Collateral', 'Initiate Loan', 'Loan is Ready'];
 
 export default function ContinueNewLoan({ loanId }) {
 	const { data: loan, isLoading: loanIsLoading, isError: loanIsError } = useUserLoan();
+	const [loading, setLoading] = useState(false);
 	//Step 2 (Deposit Collateral) states
 	const [loadingStep2, setLoadingStep2] = useState(false);
 	const [depositTxid, setDepositTxid] = useState(null);
@@ -31,8 +35,12 @@ export default function ContinueNewLoan({ loanId }) {
 	//Step 4 (Complete)
 	const [startLoanTxid, setStartLoanTxid] = useState(null);
 
+	const queryClient = useQueryClient();
+
+	let router = useRouter();
+
 	const handleNext = () => {
-		window.location.reload(); //Reload to update the status to move to the next page
+		queryClient.invalidateQueries(['loan', loan.borrower_segwit_address]); // 🔁 refetch loan data
 	};
 
 	/**
@@ -42,7 +50,7 @@ export default function ContinueNewLoan({ loanId }) {
 	const depositCollateral = async () => {
 		let transactionId;
 
-		setLoadingStep2(true);
+		setLoading(true);
 
 		try {
 			let txid = await window.unisat.sendBitcoin(loan.init_htlc_address, loan.btc_collateral);
@@ -67,21 +75,21 @@ export default function ContinueNewLoan({ loanId }) {
 			const data = await res.json();
 			setDepositTxid(transactionId);
 			console.log(data);
-			setLoadingStep2(false);
+			setLoading(false);
 		} catch (e) {
 			console.log('Error deposit collateral:', e);
-			setLoadingStep2(false);
+			setLoading(false);
 		}
 	};
 
 	const continuePostDeposit = async () => {
-		setLoadingStep3(true);
+		setLoading(true);
 
 		const res = await fetch(`https://mempool.space/testnet/api/tx/${depositTxid || loan.deposit_txid}/hex`);
 
 		if (!res.ok) {
 			console.error('HTTP Error:', res.status, await res.text());
-			setLoadingStep3(false);
+			setLoading(false);
 			throw new Error('Transaction not found or unreachable');
 		}
 
@@ -101,16 +109,16 @@ export default function ContinueNewLoan({ loanId }) {
 
 			const data = await res.json();
 			console.log(data);
-			setLoadingStep3(false);
+			setLoading(false);
 			handleNext();
 		} catch (e) {
 			console.log('Error deposit collateral:', e);
-			setLoadingStep3(false);
+			setLoading(false);
 		}
 	};
 
 	const startTransferringCollateral = async () => {
-		setLoadingStep4(true);
+		setLoading(true);
 
 		try {
 			const res = await fetch(`/api/start-loan/${loan.id}`, {
@@ -123,20 +131,29 @@ export default function ContinueNewLoan({ loanId }) {
 
 			const data = await res.json();
 			console.log(data);
-			setLoadingStep4(false);
+			setLoading(false);
 			setStartLoanTxid(data.txid);
 			handleNext();
 		} catch (e) {
 			console.log('Error deposit collateral:', e);
-			setLoadingStep4(false);
+			setLoading(false);
 		}
 	};
 
-	if (loanIsLoading) return <div>Loading loan data...</div>;
-	if (loanIsError || !loan) return <div>Failed to load loan.</div>;
+	if (loanIsLoading)
+		return (
+			<div className='w-full h-screen'>
+				<PageLoading
+					loading={true}
+					text='Loading Loan...'
+				/>
+			</div>
+		);
+	if (loanIsError || !loan) return <div className='w-full h-screen flex items-center justify-center font-semibold text-xl'>Failed to load loan.</div>;
 
 	return (
 		<div className='py-14 px-4 md:p-7 flex flex-col justify-center gap-8 w-full'>
+			<PageLoading loading={loading} />
 			<h1 className='text-4xl font-bold'>Borrowing</h1>
 			<div className='w-full flex flex-col justify-center items-center gap-10'>
 				<Stepper activeStep={loanStatusStep[loan.status]}>
@@ -218,7 +235,16 @@ OP_ENDIF`}
 													onClick={depositCollateral}>
 													<CheckIcon /> Deposited!
 												</ButtonProvider>
-												<div className='text-center mb-4 text-sm'>Transaction: {shortenAddress(depositTxid || loan.deposit_txid, 10, 10)}</div>
+
+												<div className='text-center mb-4 text-sm'>
+													Transaction:{' '}
+													<a
+														target='_blank'
+														className='font-medium underline text-blue-800'
+														href={`https://mempool.space/testnet/tx/${depositTxid || loan.deposit_txid}`}>
+														{shortenAddress(depositTxid || loan.deposit_txid, 10, 10)}
+													</a>
+												</div>
 												<ButtonProvider
 													loading={loadingStep3}
 													onClick={continuePostDeposit}>
@@ -296,8 +322,8 @@ OP_ENDIF`}
 								<CardProvider>
 									<div className='flex flex-col gap-4 p-4'>
 										<h1 className='text-center font-medium'>Loan is Ready!</h1>
-										<div className='text-5xl text-center font-semibold'>${loan.loan_amount}</div>
-										<div>has been deposited to your account</div>{' '}
+										<div className='text-5xl text-center font-semibold'>{formatUsd(loan.loan_amount)}</div>
+										<div>has been deposited to your account</div>
 										<div className='border border-gray-300 flex flex-col gap-1 p-3 rounded-md'>
 											<div className='flex flex-row justify-between items-center'>
 												<div>Loan-to-value (LTV)</div>
@@ -309,18 +335,23 @@ OP_ENDIF`}
 											</div>
 											<div className='flex flex-row gap-8 justify-between items-center'>
 												<div>P2SH Collateral Address</div>
-												<div>{shortenAddress(loan.collateral_htlc_address)} BTC</div>
+												<a
+													target='_blank'
+													className='font-medium underline text-blue-800'
+													href={`https://mempool.space/testnet/address/${loan.collateral_htlc_address}`}>
+													{shortenAddress(loan.collateral_htlc_address)} BTC
+												</a>
 											</div>
 											<div className='flex flex-row gap-8 justify-between items-center'>
 												<div>Loan due date</div>
-												<div></div>
+												<div className='whitespace-nowrap'>{formatUnix(loan.collateral_timelock)}</div>
 											</div>
 											<div className='flex flex-row justify-between items-center'>
 												<div>Fees in BTC</div>
 												<div>0 BTC</div>
 											</div>
 										</div>
-										<ButtonProvider>View Loan</ButtonProvider>
+										<ButtonProvider onClick={() => router.push('/')}>View Dashboard</ButtonProvider>
 									</div>
 								</CardProvider>
 							);

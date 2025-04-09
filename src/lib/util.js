@@ -28,7 +28,7 @@ export function getTimeLeft(futureUnix) {
 	const hours = Math.floor((secondsLeft % 86400) / 3600);
 	const minutes = Math.floor((secondsLeft % 3600) / 60);
 
-	return `${days}d ${hours}h ${minutes}m left`;
+	return `${days}d ${hours}h ${minutes}m`;
 }
 
 export function shortenAddress(addr, start = 5, end = 5) {

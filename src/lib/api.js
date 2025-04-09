@@ -59,7 +59,7 @@ export const useUserLoan = () => {
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['userLoan', userAddress],
 		queryFn: async () => {
-			const { data, error } = await supabase.from('loans').select('*').eq('borrower_segwit_address', userAddress).single();
+			const { data, error } = await supabase.from('loans').select('*').eq('borrower_segwit_address', userAddress).neq('status', 'closed').single();
 
 			if (error) throw new Error(error.message);
 			return data;

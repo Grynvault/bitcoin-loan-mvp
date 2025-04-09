@@ -1,7 +1,7 @@
 /** @format */
 'use client';
 import React, { useState } from 'react';
-
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 //MUI Import
 import CircularProgress from '@mui/material/CircularProgress';
@@ -13,6 +13,7 @@ import CardProvider from '@/components/card/CardProvider';
 import ModalProvider from '@/components/modal/ModalProvider';
 import { LockedIcon, UnlockedIcon, LockedIconXL } from '@/components/icon/icons';
 import ConnectWallet from '@/components/template/ConnectWallet';
+import PageLoading from '@/components/loading/PageLoading';
 //Lib
 import { useBtcPrice, useUserData, useUserLoan } from '@/lib/api';
 import { shortenAddress, formatUnix, getTimeLeft, formatUsd } from '@/lib/util';
@@ -25,17 +26,26 @@ function LoanPage() {
 
 	const [openPayModal, setOpenPayModal] = useState(false);
 
+	const [loading, setLoading] = useState(false);
 	const [loading1, setLoading1] = useState(false);
 	const [loading2, setLoading2] = useState(false);
 	const [unsignedPsbt, setUnsignedPsbt] = useState(null);
 	const [unlockTxid, setUnlockTxid] = useState(null);
 
+	const [loanPaid, setLoanPaid] = useState(false);
+	const [unlockCollateralTxid, setUnlockCollateralTxid] = useState(null);
+
+	const queryClient = useQueryClient();
+
+	let router = useRouter();
+
 	const handleNext = () => {
-		window.location.reload(); //Reload to update the status to move to the next page
+		queryClient.invalidateQueries(['loan', loan.borrower_segwit_address]); // 🔁 refetch loan data
 	};
 
 	const payLoan = async () => {
 		setLoading1(true);
+		setLoading(true);
 
 		try {
 			const res = await fetch(`/api/pay-loan/${loan.id}`, {
@@ -50,16 +60,18 @@ function LoanPage() {
 			console.log(data);
 			setUnsignedPsbt(data.loan.unsigned_psbt_hex);
 			setLoading1(false);
+			setLoading(false);
 			handleNext();
 		} catch (e) {
 			console.log('Error pay loan:', e);
 			setLoading1(false);
+			setLoading(false);
 		}
 	};
 
 	const signToGetBackCollateral = async () => {
 		let signedTransaction;
-		setLoading2(true);
+		setLoading(true);
 
 		try {
 			let res = await window.unisat.signPsbt(unsignedPsbt || loan.unsigned_psbt_hex, {
@@ -74,10 +86,9 @@ function LoanPage() {
 
 			console.log('res =', res);
 			signedTransaction = res;
-			setLoading2(false);
 		} catch (error) {
 			console.log('Error', error);
-			setLoading2(false);
+			setLoading(false);
 		}
 
 		try {
@@ -93,12 +104,13 @@ function LoanPage() {
 
 			const data = await res.json();
 			console.log(data);
-			setUnlockTxid(data.txid);
-			setLoading2(false);
-			handleNext();
+			setUnlockTxid(data.loan.unlock_collateral_txid);
+			setUnlockCollateralTxid(data.loan.unlock_collateral_txid);
+			setLoanPaid(true);
+			setLoading(false);
 		} catch (e) {
 			console.log('Error unlock collateral:', e);
-			setLoading2(false);
+			setLoading(false);
 		}
 	};
 
@@ -107,6 +119,7 @@ function LoanPage() {
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
+			<PageLoading loading={loading} />
 			<div className='flex flex-row items-center justify-between w-full gap-2'>
 				<h1 className='text-4xl font-bold'>Loan</h1>
 			</div>
@@ -118,6 +131,38 @@ function LoanPage() {
 							isLoading={loadingWalet}
 						/>
 					</CardProvider>
+				) : loanPaid ? (
+					<CardProvider className='w-full'>
+						<div className='w-full p-4 flex flex-col gap-4'>
+							<div className='flex flex-col justify-center items-center gap-1'>
+								<div className='text-3xl text-center font-bold py-6'>Loan is paid!</div>
+								<div className='flex items-center gap-1'>
+									<UnlockedIcon />
+									<div className='text-2xl'>0.04 BTC</div>
+								</div>
+								has been transferred to your wallet
+							</div>
+							{unlockCollateralTxid && (
+								<div className='text-center text-sm border rounded-lg p-1'>
+									Transaction Id:{' '}
+									<a
+										target='_blank'
+										className='font-medium underline text-blue-800'
+										href={`https://mempool.space/testnet/tx/${unlockCollateralTxid}`}>
+										{shortenAddress(unlockCollateralTxid, 10, 10)}
+									</a>
+								</div>
+							)}
+
+							<ButtonProvider
+								onClick={() => {
+									handleNext();
+									router.push('/');
+								}}>
+								Complete
+							</ButtonProvider>
+						</div>
+					</CardProvider>
 				) : (
 					(() => {
 						switch (loan.status) {
@@ -127,7 +172,6 @@ function LoanPage() {
 										<CardProvider className='w-full'>
 											<div className='w-full p-4 flex flex-col gap-4'>
 												<div className='text-sm text-center'>Amount due</div>
-
 												<div className='flex flex-col justify-center items-center gap-1'>
 													<div className='text-4xl text-center font-bold'>{formatUsd(loan.loan_amount)}</div>
 													<div className='flex items-center justify-center justify-start gap-2'>
@@ -262,22 +306,14 @@ function LoanPage() {
 										</div>
 									</CardProvider>
 								);
-							case 'closed':
+							default:
 								return (
-									<CardProvider className='w-full'>
-										<div className='w-full p-4 flex flex-col gap-4'>
-											<div className='flex flex-col justify-center items-center gap-1'>
-												<div className='text-3xl text-center font-bold py-6'>Loan is paid!</div>
-												<div className='flex items-center gap-1'>
-													<UnlockedIcon />
-													<div className='text-2xl'>0.04 BTC</div>
-												</div>
-												has been transferred to your wallet
-											</div>
-											<div className='text-center text-sm border rounded-lg p-1'>
-												Transaction Id: <a>{shortenAddress(loan.unlock_collateral_txid, 10, 10)}</a>
-											</div>
-											<ButtonProvider>Complete</ButtonProvider>
+									<CardProvider
+										maxwidth='100%'
+										className='w-full'>
+										<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
+											<div className='font-semibold text-2xl'>You have no loan</div>
+											<ButtonProvider onClick={() => route.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
 										</div>
 									</CardProvider>
 								);

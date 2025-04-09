@@ -81,6 +81,16 @@ export async function getLoanById(loanId) {
 	return data;
 }
 
+export async function getLoansByPubkey(pubkey) {
+	const { data, error } = await supabase.from('loans').select('*').eq('borrower_pub_key', pubkey);
+
+	if (error) {
+		throw new Error(error.message);
+	}
+
+	return data;
+}
+
 export async function updateLoan(id, updates) {
 	if (!id || isNaN(id)) {
 		throw new Error('Invalid loan ID');

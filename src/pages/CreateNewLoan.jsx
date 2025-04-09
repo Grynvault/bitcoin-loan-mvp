@@ -11,6 +11,7 @@ import StepLabel from '@mui/material/StepLabel';
 //Components import
 import CardProvider from '@/components/card/CardProvider';
 import ButtonProvider from '@/components/button/ButtonProvider';
+import PageLoading from '@/components/loading/PageLoading';
 //Lib
 import { useUserBtcBalance, useBtcPrice } from '@/lib/api';
 
@@ -85,6 +86,8 @@ function CreateNewLoan() {
 
 	return (
 		<div className='py-14 px-4 md:p-7 flex flex-col justify-center gap-8 w-full'>
+			<PageLoading loading={loading} />
+
 			<h1 className='text-4xl font-bold'>Borrowing</h1>
 			<div className='w-full flex flex-col justify-center items-center gap-10'>
 				<Stepper activeStep={activeStep}>
