@@ -12,8 +12,8 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
-import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan } from '@/lib/api';
-import { shortenAddress, formatUnix, getTimeLeft, formatUsd } from '@/lib/util';
+import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan, useUserLoanList } from '@/lib/api';
+import { shortenAddress, formatUnix, getTimeLeft, formatUsd, formatUnixDateWithOrdinal } from '@/lib/util';
 
 export default function Dashboard() {
 	const { userAddress } = useApp();
@@ -21,6 +21,7 @@ export default function Dashboard() {
 	const { data: btcPrice, isLoading: isBtcPriceLoading } = useBtcPrice();
 	const { data: userData, isLoading: isUserDataLoading } = useUserData();
 	const { data: userLoan, isLoading: isUserLoanLoading } = useUserLoan();
+	const { data: userLoanList, isLoading: isUserLoanListLoading } = useUserLoanList();
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
@@ -33,7 +34,8 @@ export default function Dashboard() {
 					userData={userData}
 					userLoan={userLoan}
 					btcPrice={btcPrice}
-					isUserLoanLoading={isUserLoanLoading}
+					isUserLoanLoading={isUserLoanLoading || isUserLoanListLoading}
+					userLoanList={userLoanList}
 				/>
 				<div className='flex flex-col gap-8 w-full'>
 					<FundCard
@@ -52,9 +54,9 @@ export default function Dashboard() {
 	);
 }
 
-const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
+const LoanCard = ({ userData, userLoan, btcPrice, userLoanList, isUserLoanLoading }) => {
 	const { connectWallet, loadingWalet } = useApp();
-	let route = useRouter();
+	let router = useRouter();
 
 	if (isUserLoanLoading)
 		return (
@@ -83,24 +85,12 @@ const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 			</CardProvider>
 		);
 
-	if (!userLoan)
-		return (
-			<CardProvider
-				maxwidth='100%'
-				className='w-full'>
-				<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
-					<div className='font-semibold text-2xl'>You have no loan</div>
-					<ButtonProvider onClick={() => route.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
-				</div>
-			</CardProvider>
-		);
-	else
+	if (userLoan)
 		return (
 			<CardProvider
 				maxwidth='100%'
 				className='w-full'>
 				<div className='w-full p-4 flex flex-col gap-4'>
-					{/* Present day - userLoan.collateral_timelock (convert from UTC to actual time) -> convert in days */}
 					{userLoan.status === 'active' ? (
 						<div className='flex items-center justify-between'>
 							<div className='text-sm'>
@@ -127,11 +117,11 @@ const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 							</div>
 						</div>
 						{userLoan.status === 'active' ? (
-							<ButtonProvider onClick={() => route.push('/loan')}>Make Payment</ButtonProvider>
+							<ButtonProvider onClick={() => router.push('/loan')}>Make Payment</ButtonProvider>
 						) : userLoan.status === 'repaid' ? (
-							<ButtonProvider onClick={() => route.push('/loan')}>Unlock Collateral</ButtonProvider>
+							<ButtonProvider onClick={() => router.push('/loan')}>Unlock Collateral</ButtonProvider>
 						) : (
-							<ButtonProvider onClick={() => route.push(`/create-loan/${userLoan.id}`)}>{statusStyles[userLoan.status].actionLabel}</ButtonProvider>
+							<ButtonProvider onClick={() => router.push(`/create-loan/${userLoan.id}`)}>{statusStyles[userLoan.status].actionLabel}</ButtonProvider>
 						)}
 					</div>
 					<div className='border-gray-400 border rounded-lg p-3 flex flex-col justify-between gap-1'>
@@ -175,6 +165,49 @@ const LoanCard = ({ userData, userLoan, btcPrice, isUserLoanLoading }) => {
 							</div>
 						</div>
 					</div>
+				</div>
+			</CardProvider>
+		);
+	else
+		return (
+			<CardProvider
+				maxwidth='100%'
+				className='w-full'>
+				<div className='h-full flex flex-col p-3'>
+					<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
+						<div className='font-semibold text-2xl'>You have no loan</div>
+						<ButtonProvider onClick={() => router.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
+					</div>
+					{userLoanList && userLoanList.length > 0 && (
+						<div className='p-2 '>
+							<div className='flex items-center justify-between pb-1'>
+								<h3 className='font-medium'>Previous Loans</h3>
+								<div
+									className='text-sm cursor-pointer underline'
+									onClick={() => router.push('/loan')}>
+									View All
+								</div>
+							</div>
+							<div className='border rounded-lg p-1 px-2 text-xs'>
+								<div className='grid grid-cols-4 pb-1'>
+									<div>Loan</div>
+									<div>BTC Collateral</div>
+									<div>Duration</div>
+									<div className='text-end'>End at</div>
+								</div>
+								{userLoanList?.slice(0, 3).map((loan) => (
+									<div
+										key={loan.id}
+										className='grid grid-cols-4'>
+										<div>{formatUsd(loan.loan_amount)}</div>
+										<div>{(loan.btc_collateral * 1e-8).toFixed(6)} BTC</div>
+										<div>{loan.loan_duration} hrs</div>
+										<div className='text-end'>{formatUnixDateWithOrdinal(loan.paid_at_timestamp)}</div>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
 				</div>
 			</CardProvider>
 		);
@@ -259,9 +292,11 @@ const statusStyles = {
 	defaulted: {
 		label: 'Defaulted',
 		color: 'bg-red-100 text-red-800',
+		actionLabel: '',
 	},
 	closed: {
 		label: 'Closed',
 		color: 'bg-gray-100 text-gray-800',
+		actionLabel: '',
 	},
 };

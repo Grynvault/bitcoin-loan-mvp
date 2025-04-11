@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-//MUI Import
-import CircularProgress from '@mui/material/CircularProgress';
 //Context import
 import { useApp } from '@/context/AppContext';
 //Components import
@@ -114,8 +112,31 @@ function LoanPage() {
 		}
 	};
 
-	if (loanIsLoading) return <div>Loading loan data...</div>;
-	if (loanError || !loan) return <div>Failed to load loan.</div>;
+	if (loanIsLoading)
+		return (
+			<PageLoading
+				loading={true}
+				text='Loading Loan data..'
+			/>
+		);
+	if (loanError || !loan)
+		return (
+			<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
+				<div className='flex flex-row items-center justify-between w-full gap-2'>
+					<h1 className='text-4xl font-bold'>Loan</h1>
+				</div>
+				<div className='flex flex-row justify-center items-center'>
+					<CardProvider className='w-full p-8'>
+						<div className='h-full flex flex-col p-3'>
+							<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
+								<div className='font-semibold text-2xl'>You have no loan</div>
+								<ButtonProvider onClick={() => router.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
+							</div>
+						</div>
+					</CardProvider>
+				</div>
+			</div>
+		);
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>

@@ -35,3 +35,30 @@ export function shortenAddress(addr, start = 5, end = 5) {
 	if (!addr || addr.length <= start + end) return addr;
 	return `${addr.slice(0, start)}...${addr.slice(-end)}`;
 }
+
+export function formatUnixDateWithOrdinal(unixTimestamp) {
+	if (!unixTimestamp) return '';
+
+	const date = new Date(unixTimestamp * 1000);
+	const day = date.getDate();
+
+	const getOrdinalSuffix = (day) => {
+		if (day > 3 && day < 21) return 'th';
+		switch (day % 10) {
+			case 1:
+				return 'st';
+			case 2:
+				return 'nd';
+			case 3:
+				return 'rd';
+			default:
+				return 'th';
+		}
+	};
+
+	const ordinal = getOrdinalSuffix(day);
+	const month = date.toLocaleString('default', { month: 'long' });
+	const year = date.getFullYear();
+
+	return `${day}${ordinal} ${month} ${year}`;
+}
