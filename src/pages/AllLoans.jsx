@@ -9,7 +9,7 @@ import { shortenAddress, formatUnix, getTimeLeft, formatUsd, formatUnixDateWithO
 function AllLoans() {
 	const { data: userLoanList, isLoading: isUserLoanListLoading } = useUserLoanList();
 
-	if (userLoanList)
+	if (userLoanList && userLoanList.length > 0)
 		return (
 			<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-6'>
 				<div className='flex flex-row items-center justify-between w-full gap-2'>

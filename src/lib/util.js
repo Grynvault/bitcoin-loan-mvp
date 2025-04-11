@@ -18,6 +18,15 @@ export function formatUsd(usd) {
 	return (usd / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+export function formatBtc(btc) {
+	return (btc * 1e-8).toFixed(6);
+}
+
+export function shortenAddress(addr, start = 5, end = 5) {
+	if (!addr || addr.length <= start + end) return addr;
+	return `${addr.slice(0, start)}...${addr.slice(-end)}`;
+}
+
 export function getTimeLeft(futureUnix) {
 	const now = Math.floor(Date.now() / 1000); // current time in seconds
 	const secondsLeft = futureUnix - now;
@@ -29,11 +38,6 @@ export function getTimeLeft(futureUnix) {
 	const minutes = Math.floor((secondsLeft % 3600) / 60);
 
 	return `${days}d ${hours}h ${minutes}m`;
-}
-
-export function shortenAddress(addr, start = 5, end = 5) {
-	if (!addr || addr.length <= start + end) return addr;
-	return `${addr.slice(0, start)}...${addr.slice(-end)}`;
 }
 
 export function formatUnixDateWithOrdinal(unixTimestamp) {

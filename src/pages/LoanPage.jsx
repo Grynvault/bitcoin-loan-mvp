@@ -156,10 +156,10 @@ function LoanPage() {
 					<CardProvider className='w-full'>
 						<div className='w-full p-4 flex flex-col gap-4'>
 							<div className='flex flex-col justify-center items-center gap-1'>
-								<div className='text-3xl text-center font-bold py-6'>Loan is paid!</div>
+								<div className='text-3xl text-center font-bold py-6'>Your BTC is unlocked!</div>
 								<div className='flex items-center gap-1'>
 									<UnlockedIcon />
-									<div className='text-2xl'>0.04 BTC</div>
+									<div className='text-2xl'>{(loan.btc_collateral * 1e-8).toFixed(6)} BTC</div>
 								</div>
 								has been transferred to your wallet
 							</div>
@@ -227,7 +227,7 @@ function LoanPage() {
 													<div className='flex flex-col gap-1 flex-1'>
 														<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 															<div>Loan Duration</div>
-															<div>7 Days</div>
+															<div>{loan.loan_duration} hrs</div>
 														</div>
 														<div className='text-xs flex gap-5 flex-row w-full justify-between'>
 															<div className='whitespace-nowrap'>Due date</div>
@@ -268,7 +268,7 @@ function LoanPage() {
 											<div className='flex flex-col justify-center items-center gap-1'>
 												<div className='py-4'>
 													<div className='text-2xl text-center font-bold pb-1'>Loan is paid!</div>
-													<div className='text-lg font-light text-center line-through'>{loan.loan_amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+													<div className='text-lg font-light text-center line-through'>{formatUsd(loan.loan_amount)}</div>
 												</div>
 												<div className='flex items-center gap-1'>
 													<LockedIconXL />
@@ -334,7 +334,7 @@ function LoanPage() {
 										className='w-full'>
 										<div className='w-full py-6 px-4 flex justify-center items-center h-full flex-col gap-4'>
 											<div className='font-semibold text-2xl'>You have no loan</div>
-											<ButtonProvider onClick={() => route.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
+											<ButtonProvider onClick={() => router.push('/create-loan/new')}>Initiate Loan</ButtonProvider>
 										</div>
 									</CardProvider>
 								);

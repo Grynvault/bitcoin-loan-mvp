@@ -84,7 +84,29 @@ export const useUserLoanList = () => {
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ['userLoanList', userAddress],
 		queryFn: async () => {
-			const { data, error } = await supabase.from('loans').select('*').eq('borrower_segwit_address', userAddress).order('created_at', { ascending: false });
+			const { data, error } = await supabase.from('loans').select('*').eq('borrower_segwit_address', userAddress).eq('status', 'closed').order('created_at', { ascending: false });
+
+			if (error) throw new Error(error.message);
+			return data;
+		},
+		enabled: !!userAddress,
+		refetchOnWindowFocus: false,
+	});
+
+	return {
+		data,
+		isLoading: isLoading,
+		isError,
+	};
+};
+
+export const useUserTransactions = () => {
+	const { userAddress } = useApp();
+
+	const { data, isLoading, isError } = useQuery({
+		queryKey: ['userTransactions', userAddress],
+		queryFn: async () => {
+			const { data, error } = await supabase.from('transactions').select('*').eq('user_wallet_address', userAddress).order('created_at', { ascending: false });
 
 			if (error) throw new Error(error.message);
 			return data;

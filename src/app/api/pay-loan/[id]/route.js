@@ -7,6 +7,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
 import { updatePaidLoan, getLoanById } from '@/lib/db/loan';
+import { addTransaction } from '@/lib/db/transactions';
 
 export async function POST(request, { params }) {
 	const { id } = await params;
@@ -52,6 +53,18 @@ export async function POST(request, { params }) {
 			loan_amount: loan_amount,
 			status: 'repaid',
 		});
+
+		await addTransaction({
+			type: 'loan_repaid',
+			status: 'confirmed',
+			amount: loan_amount,
+			currency: 'USD',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+			},
+		});
+
 		return NextResponse.json({ success: true, loan: updated });
 	} catch (err) {
 		return NextResponse.json({ success: false, error: err.message }, { status: 400 });

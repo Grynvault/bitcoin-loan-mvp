@@ -8,6 +8,7 @@ import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
 import crypto from 'crypto';
 import { initiateLoan } from '@/lib/db/loan';
+import { addTransaction } from '@/lib/db/transactions';
 
 export async function POST(request) {
 	const body = await request.json();
@@ -95,6 +96,18 @@ export async function POST(request) {
 
 	try {
 		const loan = await initiateLoan(bodyToServer);
+
+		await addTransaction({
+			type: 'loan_initiated',
+			status: 'confirmed',
+			amount: loan.loan_amount,
+			currency: 'USD',
+			user_wallet_address: loan.borrower_segwit_address,
+			details: {
+				loan_id: loan.id,
+			},
+		});
+
 		return NextResponse.json({
 			success: true,
 			loan: loan,

@@ -12,8 +12,8 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import CardProvider from '@/components/card/CardProvider';
 import { LockedIcon } from '@/components/icon/icons';
 //Lib
-import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan, useUserLoanList } from '@/lib/api';
-import { shortenAddress, formatUnix, getTimeLeft, formatUsd, formatUnixDateWithOrdinal } from '@/lib/util';
+import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan, useUserLoanList, useUserTransactions } from '@/lib/api';
+import { shortenAddress, formatUnix, getTimeLeft, formatUsd, formatBtc, formatUnixDateWithOrdinal } from '@/lib/util';
 
 export default function Dashboard() {
 	const { userAddress } = useApp();
@@ -22,34 +22,40 @@ export default function Dashboard() {
 	const { data: userData, isLoading: isUserDataLoading } = useUserData();
 	const { data: userLoan, isLoading: isUserLoanLoading } = useUserLoan();
 	const { data: userLoanList, isLoading: isUserLoanListLoading } = useUserLoanList();
+	const { data: userTransactions, isLoading: isUserTransactionLoading } = useUserTransactions();
 
 	return (
-		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
-			<div className='flex flex-row items-center justify-between w-full gap-2'>
-				<h1 className='text-4xl font-bold'>Dashboard</h1>
-				{userAddress && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(userAddress)}</div>}
-			</div>
-			<div className='flex md:flex-row flex-col gap-8 w-full'>
-				<LoanCard
-					userData={userData}
-					userLoan={userLoan}
-					btcPrice={btcPrice}
-					isUserLoanLoading={isUserLoanLoading || isUserLoanListLoading}
-					userLoanList={userLoanList}
-				/>
-				<div className='flex flex-col gap-8 w-full'>
-					<FundCard
-						userFund={userData?.usd_balance}
-						isLoading={isUserDataLoading || isUserDataLoading}
-					/>
-					<BtcFund
-						btcBalance={btcBalance}
+		<div className='py-20 px-4 md:p-10 flex flex-col w-full gap-12'>
+			<div className='flex flex-col gap-6'>
+				<div className='flex flex-row items-center justify-between w-full gap-2'>
+					<h1 className='text-4xl font-bold'>Dashboard</h1>
+					{userAddress && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(userAddress)}</div>}
+				</div>
+				<div className='flex md:flex-row flex-col gap-8 w-full'>
+					<LoanCard
+						userData={userData}
+						userLoan={userLoan}
 						btcPrice={btcPrice}
-						isLoading={isBtcBalanceLoading || isBtcPriceLoading}
+						isUserLoanLoading={isUserLoanLoading || isUserLoanListLoading}
+						userLoanList={userLoanList}
 					/>
+					<div className='flex flex-col gap-8 w-full'>
+						<FundCard
+							userFund={userData?.usd_balance}
+							isLoading={isUserDataLoading || isUserDataLoading}
+						/>
+						<BtcFund
+							btcBalance={btcBalance}
+							btcPrice={btcPrice}
+							isLoading={isBtcBalanceLoading || isBtcPriceLoading}
+						/>
+					</div>
 				</div>
 			</div>
-			{/* <h1 className='text-4xl font-bold'>Transaction</h1> */}
+			<div className='flex flex-col gap-6'>
+				<h1 className='text-4xl pt-4 font-bold'>Transaction</h1>
+				<TransactionTable transactions={userTransactions} />
+			</div>
 		</div>
 	);
 }
@@ -218,11 +224,11 @@ const FundCard = ({ userFund = 0 }) => {
 		<CardProvider maxwidth='100%'>
 			<div className='p-4 flex flex-col gap-2'>
 				<div className='font-medium'>Funds Available</div>
-				<div className='font-semibold text-3xl'>{formatUsd(userFund)}</div>
-				<div className='flex flex-row items-center gap-2'>
+				<div className='font-semibold py-4 text-3xl'>{formatUsd(userFund)}</div>
+				{/* <div className='flex flex-row items-center gap-2'>
 					<ButtonProvider>Deposit</ButtonProvider>
 					<ButtonProvider>Withdraw</ButtonProvider>
-				</div>
+				</div> */}
 			</div>
 		</CardProvider>
 	);
@@ -252,6 +258,135 @@ const BtcFund = ({ btcBalance = 0, btcPrice = 0, isLoading = true }) => {
 		</CardProvider>
 	);
 };
+
+const TransactionTable = ({ transactions }) => {
+	return (
+		<div className='w-full'>
+			<div className='overflow-x-auto rounded-lg border border-gray-400 shadow-sm bg-white'>
+				<table className='min-w-full divide-y divide-gray-200 text-sm'>
+					<thead className='bg-gray-50'>
+						<tr>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>Date</th>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>Type</th>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>Status</th>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>Amount</th>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>Transaction</th>
+							<th className='px-6 py-3 text-left font-medium text-gray-600'>TXID</th>
+						</tr>
+					</thead>
+					<tbody className='divide-y divide-gray-100'>
+						{transactions?.length > 0 ? (
+							transactions.map((tx) => (
+								<tr
+									key={tx.id}
+									className='hover:bg-gray-50 transition'>
+									<td className='px-6 py-4 text-gray-800 text-xs'>{new Date(tx.created_at).toLocaleString()}</td>
+									<td className='px-6 py-4 font-medium text-gray-900 capitalize'>{tx.type.replace('_', ' ')}</td>
+									<td className='px-6 py-4'>
+										<span
+											className={`inline-flex capitalize px-2 py-1 text-xs font-medium rounded-full
+					  ${tx.status === 'confirmed' ? 'bg-green-100 text-green-800' : tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+											{tx.status}
+										</span>
+									</td>
+									<td className={displayAmount(tx.amount, tx.currency, tx.type).className}>{displayAmount(tx.amount, tx.currency, tx.type).formatted}</td>
+									<td className='px-6 py-4 text-gray-700'>
+										{tx.details?.txid ? (
+											<div className='flex items-center gap-1'>
+												<a
+													href={`https://mempool.space/testnet/address/${tx.details?.from_address}`}
+													className='text-blue-600 hover:underline'
+													target='_blank'
+													rel='noopener noreferrer'>
+													{shortenAddress(tx.details?.from_address, 4, 4)}
+												</a>
+												<svg
+													xmlns='http://www.w3.org/2000/svg'
+													fill='none'
+													viewBox='0 0 24 24'
+													strokeWidth={1.5}
+													stroke='currentColor'
+													className='size-6'>
+													<path
+														strokeLinecap='round'
+														strokeLinejoin='round'
+														d='M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3'
+													/>
+												</svg>
+												<a
+													href={`https://mempool.space/testnet/address/${tx.details?.to_address}`}
+													className='text-blue-600 hover:underline'
+													target='_blank'
+													rel='noopener noreferrer'>
+													{shortenAddress(tx.details?.to_address, 3, 3)}
+												</a>
+											</div>
+										) : null}
+									</td>
+									<td className='px-6 py-4'>
+										{tx.details?.txid ? (
+											<a
+												href={`https://mempool.space/testnet/tx/${tx.details?.txid}`}
+												className='text-blue-600 hover:underline'
+												target='_blank'
+												rel='noopener noreferrer'>
+												{tx.details?.txid.slice(0, 8)}...{tx.details?.txid.slice(-6)}
+											</a>
+										) : (
+											<span className='text-gray-400 italic'>N/A</span>
+										)}
+									</td>
+								</tr>
+							))
+						) : (
+							<tr>
+								<td
+									colSpan='6'
+									className='px-6 py-8 text-center text-gray-500'>
+									No transactions yet.
+								</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
+};
+
+export function displayAmount(amount, currency, type) {
+	if (amount == null || !currency) return { formatted: '-', className: '' };
+
+	const upperCurrency = currency.toUpperCase();
+	const upperType = (type || '').toLowerCase();
+
+	let sign = '';
+	let className = 'text-center';
+
+	// Apply type-based rules
+	if (['loan_funded', 'collateral_redeemed'].includes(upperType)) {
+		sign = '+';
+		className = 'text-green-600 font-semibold text-center';
+	} else if (['loan_repaid', 'collateral_deposited'].includes(upperType)) {
+		sign = '-';
+		className = 'text-red-600 font-semibold text-center';
+	}
+
+	// Format the amount
+	let formatted = '';
+	switch (upperCurrency) {
+		case 'USD':
+			formatted = `${sign}${formatUsd(amount)}`;
+			break;
+		case 'BTC':
+			formatted = `${sign}${formatBtc(amount)}`;
+			break;
+		default:
+			formatted = `${sign}${Math.abs(amount)} ${upperCurrency}`;
+	}
+
+	return { formatted, className };
+}
 
 const statusStyles = {
 	requested: {

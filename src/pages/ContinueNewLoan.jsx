@@ -19,13 +19,14 @@ import PageLoading from '@/components/loading/PageLoading';
 import { ChevronDown, CheckIcon } from '@/components/icon/icons';
 //Lib
 import { useUserLoan } from '@/lib/api';
-import { shortenAddress, formatUnix, formatUsd } from '@/lib/util';
+import { shortenAddress, formatUnix, formatUsd, formatBtc } from '@/lib/util';
 
 const steps = ['Request Loan', 'Deposit BTC Collateral', 'Initiate Loan', 'Loan is Ready'];
 
 export default function ContinueNewLoan({ loanId }) {
 	const { data: loan, isLoading: loanIsLoading, isError: loanIsError } = useUserLoan();
 	const [loading, setLoading] = useState(false);
+	const [loadingTitle, setLoadingTitle] = useState('Loading..');
 	//Step 2 (Deposit Collateral) states
 	const [loadingStep2, setLoadingStep2] = useState(false);
 	const [depositTxid, setDepositTxid] = useState(null);
@@ -51,6 +52,7 @@ export default function ContinueNewLoan({ loanId }) {
 		let transactionId;
 
 		setLoading(true);
+		setLoadingTitle('Depositing BTC Collateral..');
 
 		try {
 			let txid = await window.unisat.sendBitcoin(loan.init_htlc_address, loan.btc_collateral);
@@ -58,9 +60,11 @@ export default function ContinueNewLoan({ loanId }) {
 			transactionId = txid;
 		} catch (e) {
 			console.log('Error sending Bitcoin:', e);
+			setLoading(false);
 			return;
 		}
 
+		setLoadingTitle('Updating the loan...');
 		try {
 			const res = await fetch(`/api/update-loan-data/${loan.id}`, {
 				method: 'POST',
@@ -84,6 +88,7 @@ export default function ContinueNewLoan({ loanId }) {
 
 	const continuePostDeposit = async () => {
 		setLoading(true);
+		setLoadingTitle('Loading...');
 
 		const res = await fetch(`https://mempool.space/testnet/api/tx/${depositTxid || loan.deposit_txid}/hex`);
 
@@ -119,6 +124,7 @@ export default function ContinueNewLoan({ loanId }) {
 
 	const startTransferringCollateral = async () => {
 		setLoading(true);
+		setLoadingTitle('Transferring BTC Collateral...');
 
 		try {
 			const res = await fetch(`/api/start-loan/${loan.id}`, {
@@ -149,11 +155,14 @@ export default function ContinueNewLoan({ loanId }) {
 				/>
 			</div>
 		);
-	if (loanIsError || !loan) return <div className='w-full h-screen flex items-center justify-center font-semibold text-xl'>Failed to load loan.</div>;
+	if (loanIsError || !loan) return <div className='w-full h-screen flex items-center justify-center font-semibold text-xl'></div>;
 
 	return (
 		<div className='py-14 px-4 md:p-7 flex flex-col justify-center gap-8 w-full'>
-			<PageLoading loading={loading} />
+			<PageLoading
+				loading={loading}
+				text={loadingTitle}
+			/>
 			<h1 className='text-4xl font-bold'>Borrowing</h1>
 			<div className='w-full flex flex-col justify-center items-center gap-10'>
 				<Stepper activeStep={loanStatusStep[loan.status]}>
@@ -331,7 +340,7 @@ OP_ENDIF`}
 											</div>
 											<div className='flex flex-row justify-between items-center'>
 												<div>BTC Collateral</div>
-												<div>{loan.btc_collateral} BTC</div>
+												<div>{formatBtc(loan.btc_collateral)} BTC</div>
 											</div>
 											<div className='flex flex-row gap-8 justify-between items-center'>
 												<div>P2SH Collateral Address</div>

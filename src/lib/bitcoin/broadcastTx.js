@@ -1,6 +1,6 @@
 /** @format */
 
-const endpoints = ['https://blockstream.info/testnet/api/tx', 'https://mempool.space/testnet/api/tx'];
+const endpoints = ['https://mempool.space/testnet/api/tx', 'https://blockstream.info/testnet/api/tx'];
 
 export async function broadcastTx(txHex) {
 	if (!txHex || typeof txHex !== 'string') {

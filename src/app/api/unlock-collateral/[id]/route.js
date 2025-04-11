@@ -7,6 +7,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
 import { getLoanById, updateLoan } from '@/lib/db/loan';
+import { addTransaction } from '@/lib/db/transactions';
 import { broadcastTx } from '@/lib/bitcoin/broadcastTx';
 
 //body: { signed_psbt }
@@ -70,6 +71,21 @@ export async function POST(request, { params }) {
 		const updated = await updateLoan(id, {
 			unlock_collateral_txid: txid,
 			status: 'closed',
+		});
+
+		await addTransaction({
+			type: 'collateral_redeemed',
+			status: 'confirmed',
+			amount: updated.btc_locked,
+			currency: 'BTC',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+				collateral_redeem_script_hex: transactionToHex,
+				from_address: updated.collateral_htlc_address,
+				to_address: updated.borrower_segwit_address,
+				txid: txid,
+			},
 		});
 
 		return NextResponse.json({

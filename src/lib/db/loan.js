@@ -203,5 +203,5 @@ export async function startLoan(id, updates) {
 		throw new Error(`Failed to update account: ${updateAccountError.message}`);
 	}
 
-	return { loan: loanData, account: updatedAccount };
+	return loanData;
 }

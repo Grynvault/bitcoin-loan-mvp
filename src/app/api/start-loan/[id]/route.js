@@ -7,6 +7,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import * as tools from 'uint8array-tools';
 import bip65 from 'bip65';
 import { getLoanById, updateLoan, startLoan } from '@/lib/db/loan';
+import { addTransaction } from '@/lib/db/transactions';
 import { broadcastTx } from '@/lib/bitcoin/broadcastTx';
 
 export async function POST(request, { params }) {
@@ -116,7 +117,6 @@ export async function POST(request, { params }) {
 	const bodyToServer = {
 		loan_duration: loan_duration,
 		total_loan_withdrawn: 0,
-		init_htlc_address: address,
 		status: 'active',
 		collateral_timelock: lockTime,
 		collateral_htlc_address: address,
@@ -131,6 +131,63 @@ export async function POST(request, { params }) {
 
 	try {
 		const updated = await startLoan(id, bodyToServer);
+
+		console.log('log collateral locked ->', {
+			type: 'collateral_locked',
+			status: 'confirmed',
+			amount: updated.btc_locked,
+			currency: 'BTC',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+				collateral_htlc_address: updated.collateral_htlc_address,
+				collateral_redeem_script_hex: updated.collateral_redeem_script_hex,
+				from_address: updated.init_htlc_address,
+				to_address: updated.collateral_htlc_address,
+				txid: updated.start_loan_txid,
+			},
+		});
+
+		// Step 1: Log collateral locked
+		await addTransaction({
+			type: 'collateral_locked',
+			status: 'confirmed',
+			amount: updated.btc_locked,
+			currency: 'BTC',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+				collateral_htlc_address: updated.collateral_htlc_address,
+				collateral_redeem_script_hex: updated.collateral_redeem_script_hex,
+				from_address: updated.init_htlc_address,
+				to_address: updated.collateral_htlc_address,
+				txid: updated.start_loan_txid,
+			},
+		});
+
+		console.log('log loan_funded', {
+			type: 'loan_funded',
+			status: 'confirmed',
+			amount: updated.loan_amount,
+			currency: 'USD',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+			},
+		});
+
+		// Step 2: Log loan funded
+		await addTransaction({
+			type: 'loan_funded',
+			status: 'confirmed',
+			amount: updated.loan_amount,
+			currency: 'USD',
+			user_wallet_address: updated.borrower_segwit_address || null,
+			details: {
+				loan_id: updated.id,
+			},
+		});
+
 		return NextResponse.json({
 			success: true,
 			body: { ...updated, txid: txid },
