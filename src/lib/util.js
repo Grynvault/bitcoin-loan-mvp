@@ -66,3 +66,10 @@ export function formatUnixDateWithOrdinal(unixTimestamp) {
 
 	return `${day}${ordinal} ${month} ${year}`;
 }
+
+export function hasTimelockPassed(unixTimestamp) {
+	if (!unixTimestamp || typeof unixTimestamp !== 'number') return false;
+
+	const currentUnix = Math.floor(Date.now() / 1000); // current time in seconds
+	return currentUnix > unixTimestamp;
+}

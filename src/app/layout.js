@@ -5,7 +5,7 @@ import './globals.css';
 import { ReactQueryProvider } from '@/lib/ReactQueryProvider';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProvider, useApp } from '@/context/AppContext';
-import Sidebar from '@/components/sidebar/Sidebar';
+import Topbar from '@/pages/Topbar';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',
@@ -28,6 +28,7 @@ export default function RootLayout({ children }) {
 			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
 				<ReactQueryProvider>
 					<AppProvider>
+						<Topbar />
 						<div className='flex justify-center w-full'>
 							<div className='max-w-[1200px] w-full'>{children}</div>
 						</div>

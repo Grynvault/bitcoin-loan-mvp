@@ -1,6 +1,6 @@
 /** @format */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 //MUI Import
 import CircularProgress from '@mui/material/CircularProgress';
@@ -16,7 +16,6 @@ import { useUserBtcBalance, useBtcPrice, useUserData, useUserLoan, useUserLoanLi
 import { shortenAddress, formatUnix, getTimeLeft, formatUsd, formatBtc, formatUnixDateWithOrdinal } from '@/lib/util';
 
 export default function Dashboard() {
-	const { userAddress } = useApp();
 	const { data: btcBalance, isLoading: isBtcBalanceLoading } = useUserBtcBalance();
 	const { data: btcPrice, isLoading: isBtcPriceLoading } = useBtcPrice();
 	const { data: userData, isLoading: isUserDataLoading } = useUserData();
@@ -29,7 +28,6 @@ export default function Dashboard() {
 			<div className='flex flex-col gap-6'>
 				<div className='flex flex-row items-center justify-between w-full gap-2'>
 					<h1 className='text-4xl font-bold'>Dashboard</h1>
-					{userAddress && <div className='text-xs border px-2 py-1 rounded-md border-2 font-semibold w-fit'>{shortenAddress(userAddress)}</div>}
 				</div>
 				<div className='flex md:flex-row flex-col gap-8 w-full'>
 					<LoanCard
@@ -127,7 +125,9 @@ const LoanCard = ({ userData, userLoan, btcPrice, userLoanList, isUserLoanLoadin
 						) : userLoan.status === 'repaid' ? (
 							<ButtonProvider onClick={() => router.push('/loan')}>Unlock Collateral</ButtonProvider>
 						) : (
-							<ButtonProvider onClick={() => router.push(`/create-loan/${userLoan.id}`)}>{statusStyles[userLoan.status].actionLabel}</ButtonProvider>
+							statusStyles[userLoan.status].actionLabel && (
+								<ButtonProvider onClick={() => router.push(`/create-loan/${userLoan.id}`)}>{statusStyles[userLoan.status].actionLabel}</ButtonProvider>
+							)
 						)}
 					</div>
 					<div className='border-gray-400 border rounded-lg p-3 flex flex-col justify-between gap-1'>
@@ -370,6 +370,8 @@ export function displayAmount(amount, currency, type) {
 	} else if (['loan_repaid', 'collateral_deposited'].includes(upperType)) {
 		sign = '-';
 		className = 'text-red-600 font-semibold text-center';
+	} else if (['loan_cancelled'].includes(upperType)) {
+		className = 'line-through';
 	}
 
 	// Format the amount
@@ -431,6 +433,11 @@ const statusStyles = {
 	},
 	closed: {
 		label: 'Closed',
+		color: 'bg-gray-100 text-gray-800',
+		actionLabel: '',
+	},
+	cancelled: {
+		label: 'Cancelled',
 		color: 'bg-gray-100 text-gray-800',
 		actionLabel: '',
 	},

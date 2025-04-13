@@ -18,13 +18,14 @@ import ButtonProvider from '@/components/button/ButtonProvider';
 import PageLoading from '@/components/loading/PageLoading';
 import { ChevronDown, CheckIcon } from '@/components/icon/icons';
 //Lib
-import { useUserLoan } from '@/lib/api';
-import { shortenAddress, formatUnix, formatUsd, formatBtc } from '@/lib/util';
+import { useUserLoan, useUserData } from '@/lib/api';
+import { shortenAddress, formatUnix, formatUsd, formatBtc, hasTimelockPassed } from '@/lib/util';
 
 const steps = ['Request Loan', 'Deposit BTC Collateral', 'Initiate Loan', 'Loan is Ready'];
 
 export default function ContinueNewLoan({ loanId }) {
 	const { data: loan, isLoading: loanIsLoading, isError: loanIsError } = useUserLoan();
+	const { data: userData, isLoading: isUserDataLoading } = useUserData();
 	const [loading, setLoading] = useState(false);
 	const [loadingTitle, setLoadingTitle] = useState('Loading..');
 	//Step 2 (Deposit Collateral) states
@@ -33,6 +34,8 @@ export default function ContinueNewLoan({ loanId }) {
 	const [loadingStep3, setLoadingStep3] = useState(false);
 	//Step 3 (Transfer BTC to collateral address)
 	const [loadingStep4, setLoadingStep4] = useState(false);
+	//Step 3b (Cancel Loan)
+	const [unsignedPsbt, setUnsignedPsbt] = useState(null);
 	//Step 4 (Complete)
 	const [startLoanTxid, setStartLoanTxid] = useState(null);
 
@@ -120,6 +123,73 @@ export default function ContinueNewLoan({ loanId }) {
 			console.log('Error deposit collateral:', e);
 			setLoading(false);
 		}
+	};
+
+	const cancelLoan = async () => {
+		let signedTransaction;
+
+		setLoading(true);
+		setLoadingTitle('Creating a transaction...');
+
+		try {
+			const res = await fetch(`/api/cancel-loan/${loan.id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({}),
+			});
+
+			const data = await res.json();
+			setUnsignedPsbt(data.psbt);
+		} catch (e) {
+			console.log('Error deposit collateral:', e);
+			setLoading(false);
+			return;
+		}
+
+		setLoadingTitle('Waiting for your signature...');
+
+		try {
+			const res = await window.unisat.signPsbt(unsignedPsbt, {
+				autoFinalized: false,
+				toSignInputs: [
+					{
+						index: 0,
+						address: userData.wallet_address,
+					},
+				],
+			});
+
+			console.log('res =', res);
+			signedTransaction = res;
+		} catch (error) {
+			console.log('Error', error);
+			setLoading(false);
+			return;
+		}
+
+		setLoadingTitle('Broadcasting the transaction...');
+
+		try {
+			const res = await fetch(`/api/signed-cancel-loan/${loan.id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					signed_psbt: signedTransaction,
+				}),
+			});
+			const data = await res.json();
+			console.log('data ->', data);
+		} catch (e) {
+			console.log('Error broadcasting transaction:', e);
+			setLoading(false);
+			return;
+		}
+
+		setLoading(false);
 	};
 
 	const startTransferringCollateral = async () => {
@@ -323,6 +393,22 @@ OP_ENDIF`}
 											onClick={startTransferringCollateral}>
 											Continue
 										</ButtonProvider>
+									</div>
+									<div className='p-4 flex flex-col gap-2'>
+										<div className='text-xs'>
+											If the loan is not funded in time, you may cancel it and reclaim your collateral after the timelock expires. The timelock is enforced by the Bitcoin script to
+											guarantee that the lender fulfills their obligation within the allowed window, or the borrower regains control of their funds via the timeout path.
+										</div>
+										<div className='text-xs text-center'>
+											Timelock ends at <b>{formatUnix(loan.init_timelock)} </b>
+										</div>
+										<ButtonProvider onClick={cancelLoan}>Unlock Collateral</ButtonProvider>
+
+										{/* {hasTimelockPassed(loan.init_timelock) ? (
+											<ButtonProvider onClick={cancelLoan}>Unlock Collateral</ButtonProvider>
+										) : (
+											<ButtonProvider disabled>Unlock Collateral</ButtonProvider>
+										)} */}
 									</div>
 								</CardProvider>
 							);
