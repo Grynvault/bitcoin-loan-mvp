@@ -59,6 +59,8 @@ export const useUserLoan = () => {
 	const {
 		data = null,
 		isLoading,
+		isPending,
+		status,
 		isError,
 	} = useQuery({
 		queryKey: ['userLoan', userAddress],
@@ -67,13 +69,24 @@ export const useUserLoan = () => {
 			if (error) throw new Error(error.message);
 			return data;
 		},
+		refetchOnMount: true,
 		enabled: !!userAddress,
 		refetchOnWindowFocus: false,
 	});
 
+	console.table({
+		data: data ? true : false,
+		isLoading,
+		isPending,
+		isError,
+		status,
+	});
+
 	return {
 		data,
-		isLoading: isLoading,
+		isLoading,
+		isPending,
+		status,
 		isError,
 	};
 };

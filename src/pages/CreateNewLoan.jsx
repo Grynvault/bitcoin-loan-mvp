@@ -3,6 +3,7 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 //MUI import
 import Slider from '@mui/material/Slider';
 import Stepper from '@mui/material/Stepper';
@@ -29,6 +30,8 @@ function CreateNewLoan() {
 	const [loanAmount, setLoanAmount] = useState(10);
 	const [days, setDays] = useState(2);
 	const [loading, setLoading] = useState(false);
+
+	const queryClient = useQueryClient();
 
 	let route = useRouter();
 
@@ -76,6 +79,9 @@ function CreateNewLoan() {
 
 			const data = await res.json();
 			console.log('data from server ->', data);
+			queryClient.refetchQueries({
+				queryKey: ['userLoan', userSegwitAddress],
+			});
 			route.push(`/create-loan/${data.loan.id}`);
 			setLoading(false);
 		} catch (e) {

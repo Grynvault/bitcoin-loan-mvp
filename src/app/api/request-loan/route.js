@@ -57,7 +57,7 @@ export async function POST(request) {
 	function utcNow() {
 		return Math.floor(Date.now() / 1000);
 	}
-	const lockTime = bip65.encode({ utc: utcNow() + 600 }); //10 minute from now
+	const lockTime = bip65.encode({ utc: utcNow() }); //10 minutes from now
 
 	// Generate a random 32-byte buffer (preimage)
 	const firstPreimage = 'secret_for_temporary_htlc';

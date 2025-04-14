@@ -371,7 +371,7 @@ export function displayAmount(amount, currency, type) {
 		sign = '-';
 		className = 'text-red-600 font-semibold text-center';
 	} else if (['loan_cancelled'].includes(upperType)) {
-		className = 'line-through';
+		className = 'line-through text-center';
 	}
 
 	// Format the amount

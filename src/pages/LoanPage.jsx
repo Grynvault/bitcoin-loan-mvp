@@ -30,6 +30,8 @@ function LoanPage() {
 	const [unsignedPsbt, setUnsignedPsbt] = useState(null);
 	const [unlockTxid, setUnlockTxid] = useState(null);
 
+	const [loadingTitle, setLoadingTitle] = useState('Loading..');
+
 	const [loanPaid, setLoanPaid] = useState(false);
 	const [unlockCollateralTxid, setUnlockCollateralTxid] = useState(null);
 
@@ -44,6 +46,8 @@ function LoanPage() {
 	const payLoan = async () => {
 		setLoading1(true);
 		setLoading(true);
+
+		setLoadingTitle('Paying Loan...');
 
 		try {
 			const res = await fetch(`/api/pay-loan/${loan.id}`, {
@@ -71,6 +75,8 @@ function LoanPage() {
 		let signedTransaction;
 		setLoading(true);
 
+		setLoadingTitle('Waiting for your signature...');
+
 		try {
 			let res = await window.unisat.signPsbt(unsignedPsbt || loan.unsigned_psbt_hex, {
 				autoFinalized: false,
@@ -88,6 +94,8 @@ function LoanPage() {
 			console.log('Error', error);
 			setLoading(false);
 		}
+
+		setLoadingTitle('Unlocking Collateral...');
 
 		try {
 			const res = await fetch(`api/unlock-collateral/${loan.id}`, {
@@ -140,7 +148,10 @@ function LoanPage() {
 
 	return (
 		<div className='py-14 px-4 md:p-10 flex flex-col w-full gap-12'>
-			<PageLoading loading={loading} />
+			<PageLoading
+				loading={loading}
+				text={loadingTitle}
+			/>
 			<div className='flex flex-row items-center justify-between w-full gap-2'>
 				<h1 className='text-4xl font-bold'>Loan</h1>
 			</div>
