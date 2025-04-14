@@ -1,10 +1,10 @@
 /** @format */
-
+'use server';
 import { NextResponse } from 'next/server';
-import { ECPairFactory } from 'ecpair';
-import * as ecc from 'tiny-secp256k1';
-import * as bitcoin from 'bitcoinjs-lib';
-import * as tools from 'uint8array-tools';
+const ecc = require('tiny-secp256k1');
+const ECPairFactory = require('ecpair').ECPairFactory;
+const bitcoin = require('bitcoinjs-lib');
+const tools = require('uint8array-tools');
 import bip65 from 'bip65';
 import crypto from 'crypto';
 import { initiateLoan } from '@/lib/db/loan';
