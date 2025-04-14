@@ -1,7 +1,7 @@
 /** @format */
 
 import React from 'react';
-import BorrowPage from '@/pages/BorrowPage';
+import BorrowPage from '@/components-client/BorrowPage';
 
 function BorrowPage_() {
 	return <BorrowPage />;

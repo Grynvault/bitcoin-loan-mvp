@@ -74,14 +74,6 @@ export const useUserLoan = () => {
 		refetchOnWindowFocus: false,
 	});
 
-	console.table({
-		data: data ? true : false,
-		isLoading,
-		isPending,
-		isError,
-		status,
-	});
-
 	return {
 		data,
 		isLoading,

@@ -1,8 +1,8 @@
 /** @format */
 
 import React from 'react';
-import LoanPage from '@/pages/LoanPage';
-import AllLoans from '@/pages/AllLoans';
+import LoanPage from '@/components-client/LoanPage';
+import AllLoans from '@/components-client/AllLoans';
 
 function LoanPage_() {
 	return (

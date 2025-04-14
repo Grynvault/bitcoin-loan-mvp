@@ -6,12 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import ButtonProvider from '@/components/button/ButtonProvider';
-import ConnectWallet from '@/components/template/ConnectWallet';
 import { shortenAddress } from '@/lib/util';
 
 function Topbar() {
-	const { userAddress } = useApp();
-	const { connectWallet, loadingWalet } = useApp();
+	const { userAddress, connectWallet, loadingWalet } = useApp();
 
 	let router = useRouter();
 

@@ -5,7 +5,7 @@ import './globals.css';
 import { ReactQueryProvider } from '@/lib/ReactQueryProvider';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProvider, useApp } from '@/context/AppContext';
-import Topbar from '@/pages/Topbar';
+import Topbar from '@/components-client/Topbar';
 
 const geistSans = Geist({
 	variable: '--font-geist-sans',

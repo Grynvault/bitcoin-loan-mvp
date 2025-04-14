@@ -1,6 +1,6 @@
 /** @format */
 
-import CreateNewLoan from '@/pages/CreateNewLoan';
+import CreateNewLoan from '@/components-client/CreateNewLoan';
 
 function CreateNewLoanPage() {
 	return <CreateNewLoan />;

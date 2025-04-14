@@ -1,6 +1,6 @@
 /** @format */
 'use client';
-import ContinueNewLoan from '@/pages/ContinueNewLoan';
+import ContinueNewLoan from '@/components-client/ContinueNewLoan';
 import { useParams } from 'next/navigation';
 
 function ContinueNewLoanPage() {
