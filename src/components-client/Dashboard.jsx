@@ -381,7 +381,7 @@ export function displayAmount(amount, currency, type) {
 			formatted = `${sign}${formatUsd(amount)}`;
 			break;
 		case 'BTC':
-			formatted = `${sign}${formatBtc(amount)}`;
+			formatted = `${sign}${formatBtc(amount)} BTC`;
 			break;
 		default:
 			formatted = `${sign}${Math.abs(amount)} ${upperCurrency}`;
